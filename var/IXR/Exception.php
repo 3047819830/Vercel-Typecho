@@ -1,6 +1,5 @@
 <?php
-if (!defined('__TYPECHO_ROOT_DIR__')) exit;
-/*
+/* 
    IXR - The Inutio XML-RPC Library - (c) Incutio Ltd 2002
    Version 1.61 - Simon Willison, 11th July 2003 (htmlentities -> htmlspecialchars)
    Site:   http://scripts.incutio.com/xmlrpc/

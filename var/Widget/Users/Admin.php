@@ -1,5 +1,4 @@
 <?php
-if (!defined('__TYPECHO_ROOT_DIR__')) exit;
 /**
  * Typecho Blog Platform
  *
@@ -10,7 +9,7 @@ if (!defined('__TYPECHO_ROOT_DIR__')) exit;
 
 /**
  * 后台成员列表组件
- *
+ * 
  * @author qining
  * @category typecho
  * @package Widget
@@ -21,31 +20,39 @@ class Widget_Users_Admin extends Widget_Abstract_Users
 {
     /**
      * 分页计算对象
-     *
+     * 
      * @access private
      * @var Typecho_Db_Query
      */
     private $_countSql;
-
+    
     /**
      * 所有文章个数
-     *
+     * 
      * @access private
      * @var integer
      */
     private $_total = false;
-
+    
+    /**
+     * 分页大小
+     * 
+     * @access private
+     * @var integer
+     */
+    private $_pageSize;
+    
     /**
      * 当前页
-     *
+     * 
      * @access private
      * @var integer
      */
     private $_currentPage;
-
+    
     /**
      * 仅仅输出域名和路径
-     *
+     * 
      * @access protected
      * @return string
      */
@@ -54,10 +61,10 @@ class Widget_Users_Admin extends Widget_Abstract_Users
         $parts = parse_url($this->url);
         return $parts['host'] . (isset($parts['path']) ? $parts['path'] : NULL);
     }
-
+    
     /**
      * 发布文章数
-     *
+     * 
      * @access protected
      * @return integer
      */
@@ -69,10 +76,10 @@ class Widget_Users_Admin extends Widget_Abstract_Users
                     ->where('table.contents.status = ?', 'publish')
                     ->where('table.contents.authorId = ?', $this->uid))->num;
     }
-
+    
     /**
      * 执行函数
-     *
+     * 
      * @access public
      * @return void
      */
@@ -81,25 +88,25 @@ class Widget_Users_Admin extends Widget_Abstract_Users
         $this->parameter->setDefault('pageSize=20');
         $select = $this->select();
         $this->_currentPage = $this->request->get('page', 1);
-
+    
         /** 过滤标题 */
         if (NULL != ($keywords = $this->request->keywords)) {
             $select->where('name LIKE ? OR screenName LIKE ?',
             '%' . Typecho_Common::filterSearchQuery($keywords) . '%',
             '%' . Typecho_Common::filterSearchQuery($keywords) . '%');
         }
-
+    
         $this->_countSql = clone $select;
-
+        
         $select->order('table.users.uid', Typecho_Db::SORT_ASC)
         ->page($this->_currentPage, $this->parameter->pageSize);
-
+        
         $this->db->fetchAll($select, array($this, 'push'));
     }
-
+    
     /**
      * 输出分页
-     *
+     * 
      * @access public
      * @return void
      */

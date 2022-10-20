@@ -1,13 +1,13 @@
-<?php if(!defined('__TYPECHO_ADMIN__')) exit; ?>
-<div class="typecho-foot" role="contentinfo">
-    <div class="copyright">
-        <a href="http://typecho.org" class="i-logo-s">Typecho</a>
-        <p><?php _e('由 <a href="http://typecho.org">%s</a> 强力驱动, 版本 %s (%s)', $options->software, $prefixVersion, $suffixVersion); ?></p>
+<?php if(!defined('__TYPECHO_ROOT_DIR__')) exit; ?>
+<div class="typecho-foot">
+    <h4><a href="http://typecho.org" class="logo-dark">typecho</a></h4>
+    <div class="copyright"><?php _e('基于 <em>%s %s</em> <small> | %s</small> 构建', $soft, $prefixVersion, $suffixVersion); ?></div>
+    <div class="resource">
+        <ul>
+            <li><a href="http://typecho.org"><?php _e('文档'); ?></a></li>
+            <li><a href="http://forum.typecho.org"><?php _e('支持论坛'); ?></a></li>
+            <li><a href="http://code.google.com/p/typecho/issues/entry"><?php _e('报告错误'); ?></a></li>
+            <li><a href="#"><?php _e('其他资源'); ?></a></li>
+        </ul>
     </div>
-    <nav class="resource">
-        <a href="http://docs.typecho.org"><?php _e('帮助文档'); ?></a> &bull;
-        <a href="http://forum.typecho.org"><?php _e('支持论坛'); ?></a> &bull;
-        <a href="https://github.com/typecho/typecho/issues"><?php _e('报告错误'); ?></a> &bull;
-        <a href="http://extends.typecho.org"><?php _e('资源下载'); ?></a>
-    </nav>
 </div>

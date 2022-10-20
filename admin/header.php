@@ -1,31 +1,22 @@
 <?php
-if (!defined('__TYPECHO_ADMIN__')) {
+if (!defined('__TYPECHO_ROOT_DIR__')) {
     exit;
 }
 
-$header = '<link rel="stylesheet" href="' . Typecho_Common::url('normalize.css?v=' . $suffixVersion, $options->adminStaticUrl('css')) . '">
-<link rel="stylesheet" href="' . Typecho_Common::url('grid.css?v=' . $suffixVersion, $options->adminStaticUrl('css')) . '">
-<link rel="stylesheet" href="' . Typecho_Common::url('style.css?v=' . $suffixVersion, $options->adminStaticUrl('css')) . '">
-<!--[if lt IE 9]>
-<script src="' . Typecho_Common::url('html5shiv.js?v=' . $suffixVersion, $options->adminStaticUrl('js')) . '"></script>
-<script src="' . Typecho_Common::url('respond.js?v=' . $suffixVersion, $options->adminStaticUrl('js')) . '"></script>
-<![endif]-->';
+$header = '<link rel="stylesheet" type="text/css" href="' . Typecho_Common::url('css/reset.source.css?v=' . $suffixVersion, $options->adminUrl) . '" /> 
+<link rel="stylesheet" type="text/css" href="' . Typecho_Common::url('css/grid.source.css?v=' . $suffixVersion, $options->adminUrl) . '" /> 
+<link rel="stylesheet" type="text/css" href="' . Typecho_Common::url('css/typecho.source.css?v=' . $suffixVersion, $options->adminUrl) . '" />';
 
 /** 注册一个初始化插件 */
-$header = Typecho_Plugin::factory('admin/header.php')->header($header);
+Typecho_Plugin::factory('admin/header.php')->header($header);
 
-?><!DOCTYPE HTML>
-<html class="no-js">
+?><!DOCTYPE html PUBLIC "-//W3C//DTD XHTML 1.0 Transitional//EN" 
+    "http://www.w3.org/TR/xhtml1/DTD/xhtml1-transitional.dtd">
+<html xmlns="http://www.w3.org/1999/xhtml">
     <head>
-        <meta charset="<?php $options->charset(); ?>">
-        <meta http-equiv="X-UA-Compatible" content="IE=edge">
-        <meta name="renderer" content="webkit">
-        <meta name="viewport" content="width=device-width, initial-scale=1">
+        <meta http-equiv="Content-Type" content="text/html; charset=<?php $options->charset(); ?>" />
         <title><?php _e('%s - %s - Powered by Typecho', $menu->title, $options->title); ?></title>
-        <meta name="robots" content="noindex, nofollow">
+        <meta name="robots" content="noindex,nofollow" />
         <?php echo $header; ?>
     </head>
     <body<?php if (isset($bodyClass)) {echo ' class="' . $bodyClass . '"';} ?>>
-    <!--[if lt IE 9]>
-        <div class="message error browsehappy" role="dialog"><?php _e('当前网页 <strong>不支持</strong> 你正在使用的浏览器. 为了正常的访问, 请 <a href="http://browsehappy.com/">升级你的浏览器</a>'); ?>.</div>
-    <![endif]-->

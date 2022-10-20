@@ -1,8 +1,7 @@
 <?php
-if (!defined('__TYPECHO_ROOT_DIR__')) exit;
 /**
  * CURL适配器
- *
+ * 
  * @author qining
  * @category typecho
  * @package Http
@@ -11,9 +10,12 @@ if (!defined('__TYPECHO_ROOT_DIR__')) exit;
  * @version $Id$
  */
 
+/** Typecho_Http_Client_Adapter */
+require_once 'Typecho/Http/Client/Adapter.php';
+
 /**
  * CURL适配器
- *
+ * 
  * @author qining
  * @category typecho
  * @package Http
@@ -22,7 +24,7 @@ class Typecho_Http_Client_Adapter_Curl extends Typecho_Http_Client_Adapter
 {
     /**
      * 判断适配器是否可用
-     *
+     * 
      * @access public
      * @return boolean
      */
@@ -30,10 +32,10 @@ class Typecho_Http_Client_Adapter_Curl extends Typecho_Http_Client_Adapter
     {
         return function_exists('curl_version');
     }
-
+    
     /**
      * 发送请求
-     *
+     * 
      * @access public
      * @param string $url 请求地址
      * @return string
@@ -41,7 +43,7 @@ class Typecho_Http_Client_Adapter_Curl extends Typecho_Http_Client_Adapter
     public function httpSend($url)
     {
         $ch = curl_init();
-
+        
         if ($this->ip) {
             $url = $this->scheme . '://' . $this->ip . $this->path;
             $this->headers['Rfc'] = $this->method . ' ' . $this->path . ' ' . $this->rfc;
@@ -54,10 +56,7 @@ class Typecho_Http_Client_Adapter_Curl extends Typecho_Http_Client_Adapter
         curl_setopt($ch, CURLOPT_RETURNTRANSFER, true);
         curl_setopt($ch, CURLOPT_FRESH_CONNECT, true);
         curl_setopt($ch, CURLOPT_TIMEOUT, $this->timeout);
-
-        curl_setopt($ch, CURLOPT_SSL_VERIFYPEER, false);
-        curl_setopt($ch, CURLOPT_SSL_VERIFYHOST, false);
-
+        
         /** 设置HTTP版本 */
         switch ($this->rfc) {
             case 'HTTP/1.0':
@@ -77,18 +76,18 @@ class Typecho_Http_Client_Adapter_Curl extends Typecho_Http_Client_Adapter
                 curl_setopt($ch, CURLOPT_USERAGENT, $this->headers['User-Agent']);
                 unset($this->headers['User-Agent']);
             }
-
+        
             $headers = array();
-
+            
             if (isset($this->headers['Rfc'])) {
                 $headers[] = $this->headers['Rfc'];
                 unset($this->headers['Rfc']);
             }
-
+            
             foreach ($this->headers as $key => $val) {
                 $headers[] = $key . ': ' . $val;
             }
-
+            
             curl_setopt($ch, CURLOPT_HTTPHEADER, $headers);
         }
 
@@ -97,11 +96,11 @@ class Typecho_Http_Client_Adapter_Curl extends Typecho_Http_Client_Adapter
             if (!isset($this->headers['content-type'])) {
                 curl_setopt($ch, CURLOPT_POST, true);
             }
-
+            
             if (!empty($this->data)) {
                 curl_setopt($ch, CURLOPT_POSTFIELDS, is_array($this->data) ? http_build_query($this->data) : $this->data);
             }
-
+            
             if (!empty($this->files)) {
                 foreach ($this->files as $key => &$file) {
                     $file = '@' . $file;
@@ -109,12 +108,14 @@ class Typecho_Http_Client_Adapter_Curl extends Typecho_Http_Client_Adapter
                 curl_setopt($ch, CURLOPT_POSTFIELDS, $this->files);
             }
         }
-
+        
         $response = curl_exec($ch);
         if (false === $response) {
+            /** Typecho_Http_Client_Exception */
+            require_once 'Typecho/Http/Client/Exception.php';
             throw new Typecho_Http_Client_Exception(curl_error($ch), 500);
         }
-
+        
         curl_close($ch);
         return $response;
     }

@@ -32,28 +32,29 @@ class Typecho_Config implements Iterator
      *
      * @access public
      * @param mixed $config 配置列表
+     * @return void
      */
     public function __construct($config = array())
     {
         /** 初始化参数 */
         $this->setDefault($config);
     }
-
+    
     /**
      * 工厂模式实例化一个当前配置
      *
      * @access public
      * @param array $config 配置列表
-     * @return Typecho_Config
+     * @return void
      */
     public static function factory($config = array())
     {
         return new Typecho_Config($config);
     }
-
+    
     /**
      * 设置默认的配置
-     *
+     * 
      * @access public
      * @param mixed $config 配置信息
      * @param boolean $replace 是否替换已经存在的信息
@@ -61,17 +62,13 @@ class Typecho_Config implements Iterator
      */
     public function setDefault($config, $replace = false)
     {
-        if (empty($config)) {
-            return;
-        }
-    
         /** 初始化参数 */
         if (is_string($config)) {
             parse_str($config, $params);
         } else {
             $params = $config;
         }
-
+        
         /** 设置默认参数 */
         foreach ($params as $name => $value) {
             if ($replace || !array_key_exists($name, $this->_currentConfig)) {
@@ -112,12 +109,12 @@ class Typecho_Config implements Iterator
     {
         next($this->_currentConfig);
     }
-
+    
     /**
      * 获取当前指针
-     *
+     * 
      * @access public
-     * @return mixed
+     * @return void
      */
     public function key()
     {
@@ -159,10 +156,10 @@ class Typecho_Config implements Iterator
     {
         $this->_currentConfig[$name] = $value;
     }
-
+    
     /**
      * 直接输出默认配置值
-     *
+     * 
      * @access public
      * @param string $name 配置名称
      * @param array $args 参数
@@ -184,10 +181,10 @@ class Typecho_Config implements Iterator
     {
         return isset($this->_currentConfig[$name]);
     }
-
+    
     /**
      * 魔术方法,打印当前配置数组
-     *
+     * 
      * @access public
      * @return string
      */

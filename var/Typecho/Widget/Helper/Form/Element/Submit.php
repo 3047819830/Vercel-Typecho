@@ -1,8 +1,7 @@
 <?php
-if (!defined('__TYPECHO_ROOT_DIR__')) exit;
 /**
  * 提交按钮表单项帮手
- *
+ * 
  * @category typecho
  * @package Widget
  * @copyright Copyright (c) 2008 Typecho team (http://www.typecho.org)
@@ -10,9 +9,12 @@ if (!defined('__TYPECHO_ROOT_DIR__')) exit;
  * @version $Id$
  */
 
+/** Typecho_Widget_Helper_Form_Element */
+require_once 'Typecho/Widget/Helper/Form/Element.php';
+
 /**
  * 提交按钮表单项帮手类
- *
+ * 
  * @category typecho
  * @package Widget
  * @copyright Copyright (c) 2008 Typecho team (http://www.typecho.org)
@@ -22,7 +24,7 @@ class Typecho_Widget_Helper_Form_Element_Submit extends Typecho_Widget_Helper_Fo
 {
     /**
      * 初始化当前输入项
-     *
+     * 
      * @access public
      * @param string $name 表单元素名称
      * @param array $options 选择项
@@ -33,14 +35,12 @@ class Typecho_Widget_Helper_Form_Element_Submit extends Typecho_Widget_Helper_Fo
         $this->setAttribute('class', 'typecho-option typecho-option-submit');
         $input = new Typecho_Widget_Helper_Layout('button', array('type' => 'submit'));
         $this->container($input);
-        $this->inputs[] = $input;
-
         return $input;
     }
-
+    
     /**
      * 设置表单元素值
-     *
+     * 
      * @access protected
      * @param mixed $value 表单元素值
      * @return void

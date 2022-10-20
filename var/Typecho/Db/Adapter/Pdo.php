@@ -1,5 +1,4 @@
 <?php
-if (!defined('__TYPECHO_ROOT_DIR__')) exit;
 /**
  * Typecho Blog Platform
  *
@@ -7,6 +6,9 @@ if (!defined('__TYPECHO_ROOT_DIR__')) exit;
  * @license    GNU General Public License 2.0
  * @version    $Id: Mysql.php 89 2008-03-31 00:10:57Z magike.net $
  */
+
+/** 数据库适配器接口 */
+require_once 'Typecho/Db/Adapter.php';
 
 /**
  * 数据库PDOMysql适配器
@@ -22,10 +24,10 @@ abstract class Typecho_Db_Adapter_Pdo implements Typecho_Db_Adapter
      * @var PDO
      */
     protected $_object;
-
+    
     /**
      * 最后一次操作的数据表
-     *
+     * 
      * @access protected
      * @var string
      */
@@ -33,13 +35,13 @@ abstract class Typecho_Db_Adapter_Pdo implements Typecho_Db_Adapter
 
     /**
      * 判断适配器是否可用
-     *
+     * 
      * @access public
      * @return boolean
      */
     public static function isAvailable()
     {
-        return class_exists('PDO');
+        return extension_loaded('pdo');
     }
 
     /**
@@ -47,7 +49,7 @@ abstract class Typecho_Db_Adapter_Pdo implements Typecho_Db_Adapter
      *
      * @param Typecho_Config $config 数据库配置
      * @throws Typecho_Db_Exception
-     * @return PDO
+     * @return resource
      */
     public function connect(Typecho_Config $config)
     {
@@ -57,25 +59,14 @@ abstract class Typecho_Db_Adapter_Pdo implements Typecho_Db_Adapter
             return $this->_object;
         } catch (PDOException $e) {
             /** 数据库异常 */
+            require_once 'Typecho/Db/Adapter/Exception.php';
             throw new Typecho_Db_Adapter_Exception($e->getMessage());
         }
     }
 
     /**
-     * 获取数据库版本 
+     * 初始化数据库 
      * 
-     * @param mixed $handle
-     * @return string
-     */
-    public function getVersion($handle)
-    {
-        return 'pdo:' . $handle->getAttribute(PDO::ATTR_DRIVER_NAME) 
-            . ' ' . $handle->getAttribute(PDO::ATTR_SERVER_VERSION);
-    }
-
-    /**
-     * 初始化数据库
-     *
      * @param Typecho_Config $config 数据库配置
      * @abstract
      * @access public
@@ -90,18 +81,19 @@ abstract class Typecho_Db_Adapter_Pdo implements Typecho_Db_Adapter
      * @param mixed $handle 连接对象
      * @param integer $op 数据库读写状态
      * @param string $action 数据库动作
-     * @param string $table 数据表
      * @throws Typecho_Db_Exception
      * @return resource
      */
-    public function query($query, $handle, $op = Typecho_Db::READ, $action = NULL, $table = NULL)
+    public function query($query, $handle, $op = Typecho_Db::READ, $action = NULL)
     {
         try {
-            $this->_lastTable = $table;
-            $resource = $handle->prepare($query);
+            $isQueryObject = $query instanceof Typecho_Db_Query;
+            $this->_lastTable = $isQueryObject ? $query->getAttribute('table') : NULL;
+            $resource = $handle->prepare($isQueryObject ? $query->__toString() : $query);
             $resource->execute();
         } catch (PDOException $e) {
             /** 数据库异常 */
+            require_once 'Typecho/Db/Query/Exception.php';
             throw new Typecho_Db_Query_Exception($e->getMessage(), $e->getCode());
         }
 
@@ -118,7 +110,7 @@ abstract class Typecho_Db_Adapter_Pdo implements Typecho_Db_Adapter
     {
         return $resource->fetch(PDO::FETCH_ASSOC);
     }
-
+    
     /**
      * 将数据查询的其中一行作为对象取出,其中字段名对应对象属性
      *

@@ -1,5 +1,4 @@
 <?php
-if (!defined('__TYPECHO_ROOT_DIR__')) exit;
 /**
  * Typecho Blog Platform
  *
@@ -10,7 +9,7 @@ if (!defined('__TYPECHO_ROOT_DIR__')) exit;
 
 /**
  * 异常处理组件
- *
+ * 
  * @author qining
  * @category typecho
  * @package Widget
@@ -21,6 +20,10 @@ class Widget_ExceptionHandle extends Widget_Archive
 {
     /**
      * 重载构造函数
+     * 
+     * @access public
+     * @param Exception $excepiton 抛出的异常
+     * @return void
      */
     public function __construct()
     {
