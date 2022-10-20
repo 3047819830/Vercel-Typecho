@@ -1,4 +1,5 @@
 <?php
+if (!defined('__TYPECHO_ROOT_DIR__')) exit;
 /**
  * Typecho Blog Platform
  *
@@ -6,9 +7,6 @@
  * @license    GNU General Public License 2.0
  * @version    $Id: Mysql.php 103 2008-04-09 16:22:43Z magike.net $
  */
-
-/** 数据库适配器接口 */
-require_once 'Typecho/Db/Adapter.php';
 
 /**
  * 数据库Mysql适配器
@@ -19,15 +17,15 @@ class Typecho_Db_Adapter_Mysql implements Typecho_Db_Adapter
 {
     /**
      * 数据库连接字符串标示
-     * 
+     *
      * @access private
      * @var resource
      */
     private $_dbLink;
-    
+
     /**
      * 判断适配器是否可用
-     * 
+     *
      * @access public
      * @return boolean
      */
@@ -35,7 +33,7 @@ class Typecho_Db_Adapter_Mysql implements Typecho_Db_Adapter
     {
         return function_exists('mysql_connect');
     }
-    
+
     /**
      * 数据库连接函数
      *
@@ -45,7 +43,8 @@ class Typecho_Db_Adapter_Mysql implements Typecho_Db_Adapter
      */
     public function connect(Typecho_Config $config)
     {
-        if ($this->_dbLink = @mysql_connect($config->host . ':' . $config->port, $config->user, $config->password, true)) {
+        if ($this->_dbLink = @mysql_connect($config->host . (empty($config->port) ? '' : ':' . $config->port),
+        $config->user, $config->password, true)) {
             if (@mysql_select_db($config->database, $this->_dbLink)) {
                 if ($config->charset) {
                     mysql_query("SET NAMES '{$config->charset}'", $this->_dbLink);
@@ -55,8 +54,31 @@ class Typecho_Db_Adapter_Mysql implements Typecho_Db_Adapter
         }
 
         /** 数据库异常 */
-        require_once 'Typecho/Db/Adapter/Exception.php';
         throw new Typecho_Db_Adapter_Exception(@mysql_error($this->_dbLink));
+    }
+
+    /**
+     * 获取数据库版本 
+     * 
+     * @param mixed $handle
+     * @return string
+     */
+    public function getVersion($handle)
+    {
+        return 'mysql:mysql ' . mysql_get_server_info($handle);
+    }
+
+    /**
+     * 清空数据表
+     *
+     * @param string $table
+     * @param mixed $handle 连接对象
+     * @return mixed|void
+     * @throws Typecho_Db_Exception
+     */
+    public function truncate($table, $handle)
+    {
+        $this->query('TRUNCATE TABLE ' . $this->quoteColumn($table), $handle);
     }
 
     /**
@@ -66,17 +88,17 @@ class Typecho_Db_Adapter_Mysql implements Typecho_Db_Adapter
      * @param mixed $handle 连接对象
      * @param integer $op 数据库读写状态
      * @param string $action 数据库动作
+     * @param string $table 数据表
      * @throws Typecho_Db_Exception
      * @return resource
      */
-    public function query($query, $handle, $op = Typecho_Db::READ, $action = NULL)
+    public function query($query, $handle, $op = Typecho_Db::READ, $action = NULL, $table = NULL)
     {
-        if ($resource = @mysql_query($query instanceof Typecho_Db_Query ? $query->__toString() : $query, $handle)) {
+        if ($resource = @mysql_query($query, $handle)) {
             return $resource;
         }
 
         /** 数据库异常 */
-        require_once 'Typecho/Db/Query/Exception.php';
         throw new Typecho_Db_Query_Exception(@mysql_error($this->_dbLink), mysql_errno($this->_dbLink));
     }
 
@@ -90,7 +112,7 @@ class Typecho_Db_Adapter_Mysql implements Typecho_Db_Adapter
     {
         return mysql_fetch_assoc($resource);
     }
-    
+
     /**
      * 将数据查询的其中一行作为对象取出,其中字段名对应对象属性
      *
@@ -145,7 +167,7 @@ class Typecho_Db_Adapter_Mysql implements Typecho_Db_Adapter
         $sql['offset'] = (0 == strlen($sql['offset'])) ? NULL : ' OFFSET ' . $sql['offset'];
 
         return 'SELECT ' . $sql['fields'] . ' FROM ' . $sql['table'] .
-        $sql['where'] . $sql['group'] . $sql['order'] . $sql['limit'] . $sql['offset'];
+        $sql['where'] . $sql['group'] . $sql['having'] . $sql['order'] . $sql['limit'] . $sql['offset'];
     }
 
     /**

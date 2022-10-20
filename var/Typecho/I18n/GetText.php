@@ -26,7 +26,7 @@
  * the system's gettext abilities.
  * It can read MO files and use them for translating strings.
  * The files are passed to gettext_reader as a Stream (see streams.php)
- * 
+ *
  * This version has the ability to cache all strings and translations to
  * speed up the string lookup.
  * While the cache is enabled by default, it can be switched off with the
@@ -37,7 +37,7 @@
 //reload by 70 (typecho group)
 /**
  * This file is part of PHP-gettext
- * 
+ *
  * @author Danilo Segan <danilo@kvota.net>, Nico Kaiser <nico@siriux.net>
  * @category typecho
  * @package I18n
@@ -64,7 +64,7 @@ class Typecho_I18n_GetText
     /* Methods */
     /**
      * Constructor
-     * 
+     *
      * @param string $file file name
      * @param boolean enable_cache Enable or disable caching of strings (default on)
      */
@@ -78,17 +78,14 @@ class Typecho_I18n_GetText
 
         // Caching can be turned off
         $this->enable_cache = $enable_cache;
-
-        // $MAGIC1 = (int)0x950412de; //bug in PHP 5
-        $MAGIC1 = (int) - 1794895138;
-        // $MAGIC2 = (int)0xde120495; //bug
-        $MAGIC2 = (int) - 569244523;
-
         $this->STREAM = @fopen($file, 'rb');
-        $magic = $this->readint();
-        if ($magic == $MAGIC1) {
+        
+        $unpacked = unpack('c', $this->read(4));
+        $magic = array_shift($unpacked);
+
+        if (-34 == $magic) {
             $this->BYTEORDER = 0;
-        } elseif ($magic == $MAGIC2) {
+        } elseif (-107 == $magic) {
             $this->BYTEORDER = 1;
         } else {
             $this->error = 1; // not MO file
@@ -104,33 +101,51 @@ class Typecho_I18n_GetText
     }
 
     /**
-     * Reads a 32bit Integer from the Stream
+     * read  
      * 
+     * @param mixed $count 
+     * @access private
+     * @return void
+     */
+    private function read($count)
+    {
+        $count = abs($count);
+
+        if ($count > 0) {
+            return fread($this->STREAM, $count);
+        }
+
+        return NULL;
+    }
+
+    /**
+     * Reads a 32bit Integer from the Stream
+     *
      * @access private
      * @return Integer from the Stream
      */
     private function readint()
     {
-        $end = unpack($this->BYTEORDER == 0 ? 'V' : 'N', fread($this->STREAM, 4));
+        $end = unpack($this->BYTEORDER == 0 ? 'V' : 'N', $this->read(4));
         return array_shift($end);
     }
 
     /**
      * Reads an array of Integers from the Stream
-     * 
+     *
      * @param int count How many elements should be read
      * @return Array of Integers
      */
     private function readintarray($count)
     {
-        return unpack(($this->BYTEORDER == 0 ? 'V' : 'N') . $count, fread($this->STREAM, 4 * $count));
+        return unpack(($this->BYTEORDER == 0 ? 'V' : 'N') . $count, $this->read(4 * $count));
     }
 
     /**
      * Loads the translation tables from the MO file into the cache
      * If caching is enabled, also loads all strings into a cache
      * to speed up translation lookups
-     * 
+     *
      * @access private
      */
     private function load_tables()
@@ -147,7 +162,7 @@ class Typecho_I18n_GetText
         $this->table_translations = $this->readintarray($this->total * 2);
 
         if ($this->enable_cache) {
-            $this->cache_translations = array ();
+            $this->cache_translations = array ('' => NULL);
             /* read all strings in the cache */
             for ($i = 0; $i < $this->total; $i++) {
                 if ($this->table_originals[$i * 2 + 1] > 0) {
@@ -163,7 +178,7 @@ class Typecho_I18n_GetText
 
     /**
      * Returns a string from the "originals" table
-     * 
+     *
      * @access private
      * @param int num Offset number of original string
      * @return string Requested string if found, otherwise ''
@@ -181,7 +196,7 @@ class Typecho_I18n_GetText
 
     /**
      * Returns a string from the "translations" table
-     * 
+     *
      * @access private
      * @param int num Offset number of original string
      * @return string Requested string if found, otherwise ''
@@ -199,7 +214,7 @@ class Typecho_I18n_GetText
 
     /**
      * Binary search for string
-     * 
+     *
      * @access private
      * @param string string
      * @param int start (internally used in recursive function)
@@ -241,7 +256,7 @@ class Typecho_I18n_GetText
 
     /**
      * Translates a string
-     * 
+     *
      * @access public
      * @param string string to be translated
      * @param integer $num found string number
@@ -251,7 +266,7 @@ class Typecho_I18n_GetText
     {
         if ($this->short_circuit)
             return $string;
-        $this->load_tables();     
+        $this->load_tables();
 
         if ($this->enable_cache) {
             // Caching enabled, get translated string from cache
@@ -271,13 +286,13 @@ class Typecho_I18n_GetText
 
     /**
      * Get possible plural forms from MO header
-     * 
+     *
      * @access private
      * @return string plural form header
      */
     private function get_plural_forms()
     {
-        // lets assume message number 0 is header  
+        // lets assume message number 0 is header
         // this is true, right?
         $this->load_tables();
 
@@ -288,7 +303,7 @@ class Typecho_I18n_GetText
             } else {
                 $header = $this->get_translation_string(0);
             }
-            if (eregi("plural-forms: ([^\n]*)\n", $header, $regs))
+            if (preg_match("/plural\-forms: ([^\n]*)\n/i", $header, $regs))
                 $expr = $regs[1];
             else
                 $expr = "nplurals=2; plural=n == 1 ? 0 : 1;";
@@ -299,7 +314,7 @@ class Typecho_I18n_GetText
 
     /**
      * Detects which plural form to take
-     * 
+     *
      * @access private
      * @param n count
      * @return int array index of the right plural form
@@ -321,7 +336,7 @@ class Typecho_I18n_GetText
 
     /**
      * Plural version of gettext
-     * 
+     *
      * @access public
      * @param string single
      * @param string plural
@@ -339,7 +354,7 @@ class Typecho_I18n_GetText
         }
 
         // find out the appropriate form
-        $select = $this->select_string($number); 
+        $select = $this->select_string($number);
 
         // this should contains all strings separated by NULLs
         $key = $single.chr(0).$plural;
@@ -367,7 +382,7 @@ class Typecho_I18n_GetText
 
     /**
      * 关闭文件句柄
-     * 
+     *
      * @access public
      * @return void
      */

@@ -1,4 +1,4 @@
-<?php if(!defined('__TYPECHO_ROOT_DIR__')) exit; ?>
+<?php if(!defined('__TYPECHO_ADMIN__')) exit; ?>
 
 <?php
 if (isset($post) || isset($page)) {
@@ -12,86 +12,19 @@ if (isset($post) || isset($page)) {
 }
 ?>
 
-<style>
-.upload-progress {
-    font-size: 12px;
-}
-
-#upload-panel ul li.upload-progress-item {
-	background-image: url(<?php $options->adminUrl('images/progress.gif'); ?>);
-	background-repeat: repeat-y;
-	background-position: -1000px 0;
-    background-color: #fff;
-    padding: 5px;
-    margin-bottom: 5px;
-    border: 1px solid #C1CD94;
-    
-	-moz-border-radius-topleft: 2px;
-	-moz-border-radius-topright: 2px;
-	-moz-border-radius-bottomleft: 2px;
-	-moz-border-radius-bottomright: 2px;
-	-webkit-border-top-left-radius: 2px;
-	-webkit-border-top-right-radius: 2px;
-	-webkit-border-bottom-left-radius: 2px;
-	-webkit-border-bottom-right-radius: 2px;
-	
-	/* hope IE support border radius, God save me! */
-	border-top-left-radius: 2px;
-	border-top-right-radius: 2px;
-	border-bottom-left-radius: 2px;
-	border-bottom-right-radius: 2px;
-}
-
-.upload-progress-item strong {
-    float: left;
-}
-
-.upload-progress-item strong.delete {
-    text-decoration: line-through;
-}
-
-.upload-progress-item small {
-    float: right;
-    font-size: 8pt;
-}
-
-.upload-progress-item small .insert, .upload-progress-item small .delete {
-    cursor: pointer;
-    text-decoration: underline;
-}
-
-.upload-progress-item small .insert {
-    color: #00AA00;
-}
-
-.upload-progress-item small .delete {
-    color: #CC0000;
-}
-</style>
-
-<div class="typecho-list-operate">
-<p class="operate">
-    <a class="button"><?php _e('上传文件'); ?> <small style="font-weight:normal">(<?php echo ini_get('upload_max_filesize'); ?>)</small></a>
-    <span id="swfu"><span id="swfu-placeholder"></span></span>
-</p>
+<div id="upload-panel" class="p">
+    <div class="upload-area" draggable="true"><?php _e('拖放文件到这里<br>或者 %s选择文件上传%s', '<a href="###" class="upload-file">', '</a>'); ?></div>
+    <ul id="file-list">
+    <?php while ($attachment->next()): ?>
+        <li data-cid="<?php $attachment->cid(); ?>" data-url="<?php echo $attachment->attachment->url; ?>" data-image="<?php echo $attachment->attachment->isImage ? 1 : 0; ?>"><input type="hidden" name="attachment[]" value="<?php $attachment->cid(); ?>" />
+            <a class="insert" title="<?php _e('点击插入文件'); ?>" href="###"><?php $attachment->title(); ?></a>
+            <div class="info">
+                <?php echo number_format(ceil($attachment->attachment->size / 1024)); ?> Kb
+                <a class="file" target="_blank" href="<?php $options->adminUrl('media.php?cid=' . $attachment->cid); ?>" title="<?php _e('编辑'); ?>"><i class="i-edit"></i></a>
+                <a href="###" class="delete" title="<?php _e('删除'); ?>"><i class="i-delete"></i></a>
+            </div>
+        </li>
+    <?php endwhile; ?>
+    </ul>
 </div>
 
-<ul class="upload-progress">
-<?php while ($attachment->next()): ?>
-    <li class="upload-progress-item clearfix">
-        <strong>
-            <?php $attachment->title(); ?>
-            <input type="hidden" name="attachment[]" value="<?php $attachment->cid(); ?>" />
-        </strong>
-        <small>
-            <span class="insert" onclick="<?php if ($attachment->attachment->isImage){
-                        echo "insertImageToEditor('{$attachment->title}', '{$attachment->attachment->url}', '{$attachment->permalink}');";
-                    } else {
-                        echo "insertLinkToEditor('{$attachment->title}', '{$attachment->attachment->url}', '{$attachment->permalink}');";
-                    } ?>"><?php _e('插入'); ?></span>
-            ,
-            <span class="delete" onclick="deleteAttachment(<?php $attachment->cid(); ?>, this);"><?php _e('删除'); ?></span>
-        </small>
-    </li>
-<?php endwhile; ?>
-</ul>

@@ -1,7 +1,8 @@
 <?php
+if (!defined('__TYPECHO_ROOT_DIR__')) exit;
 /**
  * 评论设置
- * 
+ *
  * @category typecho
  * @package Widget
  * @copyright Copyright (c) 2008 Typecho team (http://www.typecho.org)
@@ -11,7 +12,7 @@
 
 /**
  * 评论设置组件
- * 
+ *
  * @author qining
  * @category typecho
  * @package Widget
@@ -22,93 +23,161 @@ class Widget_Options_Discussion extends Widget_Abstract_Options implements Widge
 {
     /**
      * 输出表单结构
-     * 
+     *
      * @access public
      * @return Typecho_Widget_Helper_Form
      */
     public function form()
     {
         /** 构建表格 */
-        $form = new Typecho_Widget_Helper_Form(Typecho_Common::url('/action/options-discussion', $this->options->index),
+        $form = new Typecho_Widget_Helper_Form($this->security->getIndex('/action/options-discussion'),
         Typecho_Widget_Helper_Form::POST_METHOD);
-        
+
         /** 评论日期格式 */
         $commentDateFormat = new Typecho_Widget_Helper_Form_Element_Text('commentDateFormat', NULL, $this->options->commentDateFormat,
-        _t('评论日期格式'), _t('这是一个默认的格式,当你在模板中调用显示评论日期方法时, 如果没有指定日期格式, 将按照此格式输出.<br />
-        具体写法请参考<a href="http://cn.php.net/manual/zh/function.date.php">PHP日期格式写法</a>.'));
+        _t('评论日期格式'), _t('这是一个默认的格式,当你在模板中调用显示评论日期方法时, 如果没有指定日期格式, 将按照此格式输出.') . '<br />'
+            . _t('具体写法请参考 <a href="http://www.php.net/manual/zh/function.date.php">PHP 日期格式写法</a>.'));
+        $commentDateFormat->input->setAttribute('class', 'w-40 mono');
         $form->addInput($commentDateFormat);
-        
+
         /** 评论列表数目 */
         $commentsListSize = new Typecho_Widget_Helper_Form_Element_Text('commentsListSize', NULL, $this->options->commentsListSize,
-        _t('评论列表数目'), _t('此数目用于指定显示在侧边拦中的评论列表数目.'));
-        $commentsListSize->input->setAttribute('class', 'mini');
+        _t('评论列表数目'), _t('此数目用于指定显示在侧边栏中的评论列表数目.'));
+        $commentsListSize->input->setAttribute('class', 'w-20');
         $form->addInput($commentsListSize->addRule('isInteger', _t('请填入一个数字')));
+
+        $commentsShowOptions = array(
+            'commentsShowCommentOnly'   =>  _t('仅显示评论, 不显示 Pingback 和 Trackback'),
+            'commentsMarkdown'      =>  _t('在评论中使用 Markdown 语法'),
+            'commentsShowUrl'       =>  _t('评论者名称显示时自动加上其个人主页链接'),
+            'commentsUrlNofollow'   =>  _t('对评论者个人主页链接使用 <a href="http://en.wikipedia.org/wiki/Nofollow">nofollow 属性</a>'),
+            'commentsAvatar'        =>  _t('启用 <a href="http://gravatar.com">Gravatar</a> 头像服务, 最高显示评级为 %s 的头像',
+            '</label><select id="commentsShow-commentsAvatarRating" name="commentsAvatarRating">
+            <option value="G"' . ('G' == $this->options->commentsAvatarRating ? ' selected="true"' : '') . '>' . _t('G - 普通') .'</option>
+            <option value="PG"' . ('PG' == $this->options->commentsAvatarRating ? ' selected="true"' : '') . '>' . _t('PG - 13岁以上') .'</option>
+            <option value="R"' . ('R' == $this->options->commentsAvatarRating ? ' selected="true"' : '') . '>' . _t('R - 17岁以上成人') .'</option>
+            <option value="X"' . ('X' == $this->options->commentsAvatarRating ? ' selected="true"' : '') . '>' . _t('X - 限制级') .'</option></select>
+            <label for="commentsShow-commentsAvatarRating">'),
+            'commentsPageBreak'     =>  _t('启用分页, 并且每页显示 %s 篇评论, 在列出时将 %s 作为默认显示',
+            '</label><input type="text" value="' . $this->options->commentsPageSize
+            . '" class="text num text-s" id="commentsShow-commentsPageSize" name="commentsPageSize" /><label for="commentsShow-commentsPageSize">',
+            '</label><select id="commentsShow-commentsPageDisplay" name="commentsPageDisplay">
+            <option value="first"' . ('first' == $this->options->commentsPageDisplay ? ' selected="true"' : '') . '>' . _t('第一页') . '</option>
+            <option value="last"' . ('last' == $this->options->commentsPageDisplay ? ' selected="true"' : '') . '>' . _t('最后一页') . '</option></select>'
+            . '<label for="commentsShow-commentsPageDisplay">'),
+            'commentsThreaded'      =>  _t('启用评论回复, 以 %s 层作为每个评论最多的回复层数',
+            '</label><input name="commentsMaxNestingLevels" type="text" class="text num text-s" value="' . $this->options->commentsMaxNestingLevels . '" id="commentsShow-commentsMaxNestingLevels" />
+            <label for="commentsShow-commentsMaxNestingLevels">') . '</label></span><span class="multiline">'
+            . _t('将 %s 的评论显示在前面', '<select id="commentsShow-commentsOrder" name="commentsOrder">
+            <option value="DESC"' . ('DESC' == $this->options->commentsOrder ? ' selected="true"' : '') . '>' . _t('较新的') . '</option>
+            <option value="ASC"' . ('ASC' == $this->options->commentsOrder ? ' selected="true"' : '') . '>' . _t('较旧的') . '</option></select><label for="commentsShow-commentsOrder">')
+        );
+
+        $commentsShowOptionsValue = array();
+        if ($this->options->commentsShowCommentOnly) {
+            $commentsShowOptionsValue[] = 'commentsShowCommentOnly';
+        }
+
+        if ($this->options->commentsMarkdown) {
+            $commentsShowOptionsValue[] = 'commentsMarkdown';
+        }
+
+        if ($this->options->commentsShowUrl) {
+            $commentsShowOptionsValue[] = 'commentsShowUrl';
+        }
+
+        if ($this->options->commentsUrlNofollow) {
+            $commentsShowOptionsValue[] = 'commentsUrlNofollow';
+        }
         
-        /** 是否在列表中的评论者处显示其个人主页链接 */
-        $commentsShowUrl = new Typecho_Widget_Helper_Form_Element_Radio('commentsShowUrl', array('0' => _t('不显示'), '1' => _t('显示')),
-        $this->options->commentsShowUrl, _t('是否在列表中的评论者名称处显示其个人主页链接'),
-        _t('如果你打开此选项, 当评论作者在提交评论时留下的个人主页地址, 将以链接的形式呈现出来.<br />
-        在某些主题中此选项可能不会生效, 因为它可以在模板中被强行设置.'));
-        $form->addInput($commentsShowUrl);
-        
-        /** 是否对评论者个人主页链接使用nofollow属性 */
-        $commentsUrlNofollow = new Typecho_Widget_Helper_Form_Element_Radio('commentsUrlNofollow', array('0' => _t('不启用'), '1' => _t('启用')),
-        $this->options->commentsUrlNofollow, _t('是否对评论者个人主页链接使用nofollow属性'),
-        _t('当评论作者的个人主页地址在你的网站上呈现时, 其在搜索引擎中可能被识别为外链地址.<br />
-        过多的外链地址将导致你的网站在搜索引擎中被降权, 打开此选项能帮助你解决此问题.<br />
-        更多关于nofollow的信息请参考<a href="http://en.wikipedia.org/wiki/Nofollow">wikipedia上的解释</a>.'));
-        $form->addInput($commentsUrlNofollow);
-        
-        /** 评论嵌套层数限制 */
-        $commentsListSize = new Typecho_Widget_Helper_Form_Element_Text('commentsMaxNestingLevels', NULL, $this->options->commentsMaxNestingLevels,
-        _t('评论嵌套层数限制'), _t('当模板中嵌套出现相关评论回复时, 此数值将用于限制嵌套评论最大的层数.<br />
-        我们建议将层数限制在10以下.'));
-        $commentsListSize->input->setAttribute('class', 'mini');
-        $form->addInput($commentsListSize->addRule('isInteger', _t('请填入一个数字')));
-        
-        /** 评论审核 */
-        $commentsRequireModeration = new Typecho_Widget_Helper_Form_Element_Radio('commentsRequireModeration', array('0' => _t('不启用'), '1' => _t('启用')),
-        $this->options->commentsRequireModeration, _t('评论审核'),
-        _t('打开此选项后,所有提交的评论,引用通告和广播将不会立即呈现, 而是被标记为待审核, 你可以在后台标记它们是否呈现.<br />
-        被评论文章的作者和编辑及以上权限的用户不受此选项的约束.'));
-        $form->addInput($commentsRequireModeration);
-        
-        /** 在文章发布一段时间后自动关闭评论和广播功能 */
-        $commentsPostTimeout = new Typecho_Widget_Helper_Form_Element_Select('commentsPostTimeout', array('0' => _t('永不关闭'), '86400' => _t('一天后关闭'),
-        '259200' => _t('三天后关闭'), '1296000' => _t('半个月后关闭'), '2592000' => _t('一个月后关闭'), '7776000' => _t('三个月后关闭'),
-        '15552000' => _t('半年后关闭'), '31536000' => _t('一年后关闭')),
-        $this->options->commentsPostTimeout, _t('在文章发布一段时间后自动关闭反馈功能'),
-        _t('打开此选项后, 发布时间超过此设置文章的反馈功能将被关闭.<br />
-        此选项可以帮助你抵御一部分垃圾评论, 但也有可能会让你失去一部分优秀的评论.'));
-        $form->addInput($commentsPostTimeout);
-        
-        /** 必须填写邮箱 */
-        $commentsRequireMail = new Typecho_Widget_Helper_Form_Element_Radio('commentsRequireMail', array('0' => _t('不需要'), '1' => _t('需要')),
-        $this->options->commentsRequireMail, _t('必须填写邮箱'));
-        $form->addInput($commentsRequireMail);
-        
-        /** 必须填写网址 */
-        $commentsRequireURL = new Typecho_Widget_Helper_Form_Element_Radio('commentsRequireURL', array('0' => _t('不需要'), '1' => _t('需要')),
-        $this->options->commentsRequireURL, _t('必须填写网址'));
-        $form->addInput($commentsRequireURL);
-        
+        if ($this->options->commentsAvatar) {
+            $commentsShowOptionsValue[] = 'commentsAvatar';
+        }
+
+        if ($this->options->commentsPageBreak) {
+            $commentsShowOptionsValue[] = 'commentsPageBreak';
+        }
+
+        if ($this->options->commentsThreaded) {
+            $commentsShowOptionsValue[] = 'commentsThreaded';
+        }
+
+        $commentsShow = new Typecho_Widget_Helper_Form_Element_Checkbox('commentsShow', $commentsShowOptions,
+        $commentsShowOptionsValue, _t('评论显示'));
+        $form->addInput($commentsShow->multiMode());
+
+        /** 评论提交 */
+        $commentsPostOptions = array(
+            'commentsRequireModeration'     =>  _t('所有评论必须经过审核'),
+            'commentsWhitelist'     =>  _t('评论者之前须有评论通过了审核'),
+            'commentsRequireMail'           =>  _t('必须填写邮箱'),
+            'commentsRequireURL'            =>  _t('必须填写网址'),
+            'commentsCheckReferer'          =>  _t('检查评论来源页 URL 是否与文章链接一致'),
+            'commentsAntiSpam'              =>  _t('开启反垃圾保护'),
+            'commentsAutoClose'             =>  _t('在文章发布 %s 天以后自动关闭评论',
+            '</label><input name="commentsPostTimeout" type="text" class="text num text-s" value="' . intval($this->options->commentsPostTimeout / (24 * 3600)) . '" id="commentsPost-commentsPostTimeout" />
+            <label for="commentsPost-commentsPostTimeout">'),
+            'commentsPostIntervalEnable'    =>  _t('同一 IP 发布评论的时间间隔限制为 %s 分钟',
+            '</label><input name="commentsPostInterval" type="text" class="text num text-s" value="' . round($this->options->commentsPostInterval / (60), 1) . '" id="commentsPost-commentsPostInterval" />
+            <label for="commentsPost-commentsPostInterval">')
+        );
+
+        $commentsPostOptionsValue = array();
+        if ($this->options->commentsRequireModeration) {
+            $commentsPostOptionsValue[] = 'commentsRequireModeration';
+        }
+
+        if ($this->options->commentsWhitelist) {
+            $commentsPostOptionsValue[] = 'commentsWhitelist';
+        }
+
+        if ($this->options->commentsRequireMail) {
+            $commentsPostOptionsValue[] = 'commentsRequireMail';
+        }
+
+        if ($this->options->commentsRequireURL) {
+            $commentsPostOptionsValue[] = 'commentsRequireURL';
+        }
+
+        if ($this->options->commentsCheckReferer) {
+            $commentsPostOptionsValue[] = 'commentsCheckReferer';
+        }
+
+        if ($this->options->commentsAntiSpam) {
+            $commentsPostOptionsValue[] = 'commentsAntiSpam';
+        }
+
+        if ($this->options->commentsAutoClose) {
+            $commentsPostOptionsValue[] = 'commentsAutoClose';
+        }
+
+        if ($this->options->commentsPostIntervalEnable) {
+            $commentsPostOptionsValue[] = 'commentsPostIntervalEnable';
+        }
+
+        $commentsPost = new Typecho_Widget_Helper_Form_Element_Checkbox('commentsPost', $commentsPostOptions,
+        $commentsPostOptionsValue, _t('评论提交'));
+        $form->addInput($commentsPost->multiMode());
+
         /** 允许使用的HTML标签和属性 */
         $commentsHTMLTagAllowed = new Typecho_Widget_Helper_Form_Element_Textarea('commentsHTMLTagAllowed', NULL,
-        htmlspecialchars($this->options->commentsHTMLTagAllowed),
-        _t('允许使用的HTML标签和属性'), _t('默认的用户评论不允许填写任何的HTML标签, 你可以在这里填写允许使用的HTML标签.<br />
-        比如: &lt;a href=&quot;&quot;&gt; &lt;img src=&quot;&quot;&gt; &lt;blockquote&gt;'));
+        $this->options->commentsHTMLTagAllowed,
+        _t('允许使用的HTML标签和属性'), _t('默认的用户评论不允许填写任何的HTML标签, 你可以在这里填写允许使用的HTML标签.') . '<br />'
+            . _t('比如: %s', '<code>&lt;a href=&quot;&quot;&gt; &lt;img src=&quot;&quot;&gt; &lt;blockquote&gt;</code>'));
+        $commentsHTMLTagAllowed->input->setAttribute('class', 'mono');
         $form->addInput($commentsHTMLTagAllowed);
-        
+
         /** 提交按钮 */
         $submit = new Typecho_Widget_Helper_Form_Element_Submit('submit', NULL, _t('保存设置'));
+        $submit->input->setAttribute('class', 'btn primary');
         $form->addItem($submit);
-        
+
         return $form;
     }
-    
+
     /**
      * 执行更新动作
-     * 
+     *
      * @access public
      * @return void
      */
@@ -118,27 +187,61 @@ class Widget_Options_Discussion extends Widget_Abstract_Options implements Widge
         if ($this->form()->validate()) {
             $this->response->goBack();
         }
-    
-        $settings = $this->request->from('commentDateFormat', 'commentsListSize', 'commentsShowUrl', 'commentsUrlNofollow',
-                'commentsMaxNestingLevels', 'commentsUrlNofollow', 'commentsPostTimeout', 'commentsUniqueIpInterval', 'commentsRequireMail',
-                'commentsRequireModeration', 'commentsRequireURL', 'commentsHTMLTagAllowed', 'commentsStopWords', 'commentsIpBlackList');
+
+        $settings = $this->request->from('commentDateFormat', 'commentsListSize', 'commentsPageSize', 'commentsPageDisplay', 'commentsAvatar',
+                'commentsOrder', 'commentsMaxNestingLevels', 'commentsUrlNofollow', 'commentsPostTimeout', 'commentsUniqueIpInterval', 'commentsWhitelist', 'commentsRequireMail', 'commentsAvatarRating',
+                'commentsPostTimeout', 'commentsPostInterval', 'commentsRequireModeration', 'commentsRequireURL', 'commentsHTMLTagAllowed', 'commentsStopWords', 'commentsIpBlackList');
+        $settings['commentsShow'] = $this->request->getArray('commentsShow');
+        $settings['commentsPost'] = $this->request->getArray('commentsPost');
+
+        $settings['commentsShowCommentOnly'] = $this->isEnableByCheckbox($settings['commentsShow'], 'commentsShowCommentOnly');
+        $settings['commentsMarkdown'] = $this->isEnableByCheckbox($settings['commentsShow'], 'commentsMarkdown');
+        $settings['commentsShowUrl'] = $this->isEnableByCheckbox($settings['commentsShow'], 'commentsShowUrl');
+        $settings['commentsUrlNofollow'] = $this->isEnableByCheckbox($settings['commentsShow'], 'commentsUrlNofollow');
+        $settings['commentsAvatar'] = $this->isEnableByCheckbox($settings['commentsShow'], 'commentsAvatar');
+        $settings['commentsPageBreak'] = $this->isEnableByCheckbox($settings['commentsShow'], 'commentsPageBreak');
+        $settings['commentsThreaded'] = $this->isEnableByCheckbox($settings['commentsShow'], 'commentsThreaded');
+
+        $settings['commentsPageSize'] = intval($settings['commentsPageSize']);
+        $settings['commentsMaxNestingLevels'] = min(7, max(2, intval($settings['commentsMaxNestingLevels'])));
+        $settings['commentsPageDisplay'] = ('first' == $settings['commentsPageDisplay']) ? 'first' : 'last';
+        $settings['commentsOrder'] = ('DESC' == $settings['commentsOrder']) ? 'DESC' : 'ASC';
+        $settings['commentsAvatarRating'] = in_array($settings['commentsAvatarRating'], array('G', 'PG', 'R', 'X'))
+            ? $settings['commentsAvatarRating'] : 'G';
+
+        $settings['commentsRequireModeration'] = $this->isEnableByCheckbox($settings['commentsPost'], 'commentsRequireModeration');
+        $settings['commentsWhitelist'] = $this->isEnableByCheckbox($settings['commentsPost'], 'commentsWhitelist');
+        $settings['commentsRequireMail'] = $this->isEnableByCheckbox($settings['commentsPost'], 'commentsRequireMail');
+        $settings['commentsRequireURL'] = $this->isEnableByCheckbox($settings['commentsPost'], 'commentsRequireURL');
+        $settings['commentsCheckReferer'] = $this->isEnableByCheckbox($settings['commentsPost'], 'commentsCheckReferer');
+        $settings['commentsAntiSpam'] = $this->isEnableByCheckbox($settings['commentsPost'], 'commentsAntiSpam');
+        $settings['commentsAutoClose'] = $this->isEnableByCheckbox($settings['commentsPost'], 'commentsAutoClose');
+        $settings['commentsPostIntervalEnable'] = $this->isEnableByCheckbox($settings['commentsPost'], 'commentsPostIntervalEnable');
+
+        $settings['commentsPostTimeout'] = intval($settings['commentsPostTimeout']) * 24 * 3600;
+        $settings['commentsPostInterval'] = round($settings['commentsPostInterval'], 1) * 60;
+
+        unset($settings['commentsShow']);
+        unset($settings['commentsPost']);
+
         foreach ($settings as $name => $value) {
             $this->update(array('value' => $value), $this->db->sql()->where('name = ?', $name));
         }
 
-        $this->widget('Widget_Notice')->set(_t("设置已经保存"), NULL, 'success');
+        $this->widget('Widget_Notice')->set(_t("设置已经保存"), 'success');
         $this->response->goBack();
     }
 
     /**
      * 绑定动作
-     * 
+     *
      * @access public
      * @return void
      */
     public function action()
     {
         $this->user->pass('administrator');
+        $this->security->protect();
         $this->on($this->request->isPost())->updateDiscussionSettings();
         $this->response->redirect($this->options->adminUrl);
     }

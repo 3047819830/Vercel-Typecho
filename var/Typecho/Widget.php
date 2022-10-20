@@ -7,12 +7,6 @@
  * @version    $Id: Widget.php 107 2008-04-11 07:14:43Z magike.net $
  */
 
-/** Typecho_Config */
-require_once 'Typecho/Config.php';
-
-/** Typecho_Plugin */
-require_once 'Typecho/Plugin.php';
-
 /**
  * Typecho组件基类
  *
@@ -22,27 +16,28 @@ abstract class Typecho_Widget
 {
     /**
      * widget对象池
-     * 
+     *
      * @access private
      * @var array
      */
     private static $_widgetPool = array();
-    
+
+
+    /**
+     * widget别名
+     *
+     * @access private
+     * @var array
+     */
+    private static $_widgetAlias = array();
+
     /**
      * 帮手列表
-     * 
+     *
      * @access private
      * @var array
      */
     private $_helpers = array();
-
-    /**
-     * 内部数据堆栈
-     *
-     * @access protected
-     * @var array
-     */
-    protected $stack = array();
 
     /**
      * 数据堆栈每一行
@@ -51,55 +46,62 @@ abstract class Typecho_Widget
      * @var array
      */
     protected $row = array();
-    
+
+    /**
+     * 数据堆栈
+     *
+     * @access public
+     * @var array
+     */
+    public $stack = array();
+
     /**
      * 当前队列指针顺序值,从1开始
-     * 
+     *
      * @access public
      * @var integer
      */
     public $sequence = 0;
-    
+
     /**
      * 队列长度
-     * 
+     *
      * @access public
      * @var integer
      */
     public $length = 0;
-    
+
     /**
      * request对象
-     * 
+     *
      * @var Typecho_Request
      * @access public
      */
     public $request;
-    
+
     /**
      * response对象
-     * 
+     *
      * @var Typecho_Response
      * @access public
      */
     public $response;
-    
+
     /**
      * config对象
-     * 
+     *
      * @access public
-     * @var public
+     * @var Typecho_Config
      */
     public $parameter;
-    
+
     /**
      * 构造函数,初始化组件
-     * 
+     *
      * @access public
      * @param mixed $request request对象
      * @param mixed $response response对象
      * @param mixed $params 参数列表
-     * @return void
      */
     public function __construct($request, $response, $params = NULL)
     {
@@ -107,23 +109,35 @@ abstract class Typecho_Widget
         $this->request = $request;
         $this->response = $response;
         $this->parameter = new Typecho_Config();
-        
+
         if (!empty($params)) {
             $this->parameter->setDefault($params);
         }
     }
-    
+
+    /**
+     * 解析回调
+     * 
+     * @param array $matches 
+     * @access protected
+     * @return string
+     */
+    protected function __parseCallback($matches)
+    {
+        return $this->{$matches[1]};
+    }
+
     /**
      * execute function.
-     * 
+     *
      * @access public
      * @return void
      */
     public function execute(){}
-    
+
     /**
      * post事件触发
-     * 
+     *
      * @param boolean $condition 触发条件
      * @return mixed
      */
@@ -132,15 +146,13 @@ abstract class Typecho_Widget
         if ($condition) {
             return $this;
         } else {
-            /** Typecho_Widget_Helper_Null */
-            require_once 'Typecho/Widget/Helper/Empty.php';
             return new Typecho_Widget_Helper_Empty();
         }
     }
-    
+
     /**
      * 获取对象插件句柄
-     * 
+     *
      * @access public
      * @param string $handle 句柄
      * @return Typecho_Plugin
@@ -151,31 +163,46 @@ abstract class Typecho_Widget
     }
 
     /**
-     * 工厂方法,将类静态化放置到列表中
+     * widget别名 
      * 
+     * @param string $widgetClass 
+     * @param string $aliasClass 
+     * @static
+     * @access public
+     * @return void
+     */
+    public static function alias($widgetClass, $aliasClass)
+    {
+        self::$_widgetAlias[$widgetClass] = $aliasClass;
+    }
+
+    /**
+     * 工厂方法,将类静态化放置到列表中
+     *
      * @access public
      * @param string $alias 组件别名
      * @param mixed $params 传递的参数
      * @param mixed $request 前端参数
      * @param boolean $enableResponse 是否允许http回执
-     * @return object
+     * @return Typecho_Widget
      * @throws Typecho_Exception
      */
     public static function widget($alias, $params = NULL, $request = NULL, $enableResponse = true)
     {
-        list($className) = explode('@', $alias);
+        $parts = explode('@', $alias);
+        $className = $parts[0];
+        $alias = empty($parts[1]) ? $className : $parts[1];
+
+        if (isset(self::$_widgetAlias[$className])) {
+            $className = self::$_widgetAlias[$className];
+        }
 
         if (!isset(self::$_widgetPool[$alias])) {
-            $fileName = str_replace('_', '/', $className) . '.php';            
-            require_once $fileName;
-            
             /** 如果类不存在 */
             if (!class_exists($className)) {
-                /** Typecho_Exception */
-                require_once 'Typecho/Widget/Exception.php';
                 throw new Typecho_Widget_Exception($className);
             }
-            
+
             /** 初始化request */
             if (!empty($request)) {
                 $requestObject = new Typecho_Request();
@@ -183,24 +210,24 @@ abstract class Typecho_Widget
             } else {
                 $requestObject = Typecho_Request::getInstance();
             }
-            
+
             /** 初始化response */
-            $responseObject = $enableResponse ? Typecho_Response::getInstance() 
+            $responseObject = $enableResponse ? Typecho_Response::getInstance()
             : Typecho_Widget_Helper_Empty::getInstance();
-            
+
             /** 初始化组件 */
             $widget = new $className($requestObject, $responseObject, $params);
 
             $widget->execute();
             self::$_widgetPool[$alias] = $widget;
         }
-        
+
         return self::$_widgetPool[$alias];
     }
-    
+
     /**
      * 释放组件
-     * 
+     *
      * @access public
      * @param string $alias 组件名称
      * @return void
@@ -216,7 +243,7 @@ abstract class Typecho_Widget
      * 将类本身赋值
      *
      * @param string $variable 变量名
-     * @return void
+     * @return self
      */
     public function to(&$variable)
     {
@@ -231,33 +258,10 @@ abstract class Typecho_Widget
      */
     public function parse($format)
     {
-        $rowsKey = array();
-
-        /** 过滤数据行 */
-        foreach ($this->row as $key => $val) {
-            if (is_array($val) || is_object($val)) {
-                unset($this->row[$key]);
-            }
+        while ($this->next()) {
+            echo preg_replace_callback("/\{([_a-z0-9]+)\}/i", 
+                array($this, '__parseCallback'), $format);
         }
-
-        //将数据格式化
-        foreach ($this->row as $key => $val) {
-            $rowsKey[] = '{' . $key . '}';
-        }
-
-        foreach ($this->stack as $val) {
-            /** 过滤数据行 */
-            foreach ($val as $inkey => $inval) {
-                if (is_array($inval) || is_object($inval)) {
-                    unset($val[$inkey]);
-                }
-            }
-            echo str_replace($rowsKey, $val, $format) . "\n";
-        }
-        
-        /** 重置指针 */
-        reset($this->row);
-        reset($this->stack);
     }
 
     /**
@@ -275,12 +279,11 @@ abstract class Typecho_Widget
         $this->stack[] = $value;
         return $value;
     }
-    
+
     /**
      * 根据余数输出
-     * 
+     *
      * @access public
-     * @param string $param 需要输出的值
      * @return void
      */
     public function alt()
@@ -290,10 +293,10 @@ abstract class Typecho_Widget
         $split = $this->sequence % $num;
         echo $args[(0 == $split ? $num : $split) -1];
     }
-    
+
     /**
      * 输出顺序值
-     * 
+     *
      * @access public
      * @return void
      */
@@ -301,10 +304,10 @@ abstract class Typecho_Widget
     {
         echo $this->sequence;
     }
-    
+
     /**
      * 输出数据长度
-     * 
+     *
      * @access public
      * @return void
      */
@@ -331,17 +334,21 @@ abstract class Typecho_Widget
     public function next()
     {
         if ($this->stack) {
-            $this->row = &$this->stack[key($this->stack)];
+            $this->row = @$this->stack[key($this->stack)];
             next($this->stack);
             $this->sequence ++;
         }
-        
+
         if (!$this->row) {
             reset($this->stack);
+            if ($this->stack) {
+                $this->row = $this->stack[key($this->stack)];
+            }
+            
             $this->sequence = 0;
             return false;
         }
-        
+
         return $this->row;
     }
 
@@ -355,7 +362,12 @@ abstract class Typecho_Widget
      */
     public function __call($name, $args)
     {
-        echo $this->{$name};
+        $method = 'call' . ucfirst($name);
+        $this->pluginHandle()->trigger($plugged)->{$method}($this, $args);
+
+        if (!$plugged) {
+            echo $this->{$name};
+        }
     }
 
     /**
@@ -367,10 +379,24 @@ abstract class Typecho_Widget
      */
     public function __get($name)
     {
-        return isset($this->row[$name]) ? $this->row[$name] : (method_exists($this, $method = '___' . $name)
-        ? $this->row[$name] = $this->$method() : NULL);
+        if (array_key_exists($name, $this->row)) {
+            return $this->row[$name];
+        } else {
+            $method = '___' . $name;
+
+            if (method_exists($this, $method)) {
+                return $this->$method();
+            } else {
+                $return = $this->pluginHandle()->trigger($plugged)->{$method}($this);
+                if ($plugged) {
+                    return $return;
+                }
+            }
+        }
+
+        return NULL;
     }
-    
+
     /**
      * 设定堆栈每一行的值
      *
@@ -382,10 +408,10 @@ abstract class Typecho_Widget
     {
         $this->row[$name] = $value;
     }
-    
+
     /**
      * 验证堆栈值是否存在
-     * 
+     *
      * @access public
      * @param string $name
      * @return boolean

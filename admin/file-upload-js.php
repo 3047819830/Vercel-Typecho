@@ -1,188 +1,212 @@
-<?php if(!defined('__TYPECHO_ROOT_DIR__')) exit; ?>
+<?php if(!defined('__TYPECHO_ADMIN__')) exit; ?>
+<?php
+if (isset($post) && $post instanceof Typecho_Widget && $post->have()) {
+    $fileParentContent = $post;
+} else if (isset($page) && $page instanceof Typecho_Widget && $page->have()) {
+    $fileParentContent = $page;
+}
 
-<script type="text/javascript" src="<?php $options->adminUrl('javascript/swfupload/swfupload.js?v=' . $suffixVersion); ?>"></script>
-<script type="text/javascript" src="<?php $options->adminUrl('javascript/swfupload/swfupload.queue.js?v=' . $suffixVersion); ?>"></script>
-<script type="text/javascript">
-    var deleteAttachment = function (cid, el) {
-    
-        var _title = $(el).getParent('li').getElement('strong');
+$phpMaxFilesize = function_exists('ini_get') ? trim(ini_get('upload_max_filesize')) : 0;
+
+if (preg_match("/^([0-9]+)([a-z]{1,2})$/i", $phpMaxFilesize, $matches)) {
+    $phpMaxFilesize = strtolower($matches[1] . $matches[2] . (1 == strlen($matches[2]) ? 'b' : ''));
+}
+?>
+
+<script src="<?php $options->adminStaticUrl('js', 'moxie.js?v=' . $suffixVersion); ?>"></script>
+<script src="<?php $options->adminStaticUrl('js', 'plupload.js?v=' . $suffixVersion); ?>"></script>
+<script>
+$(document).ready(function() {
+    function updateAttacmentNumber () {
+        var btn = $('#tab-files-btn'),
+            balloon = $('.balloon', btn),
+            count = $('#file-list li .insert').length;
+
+        if (count > 0) {
+            if (!balloon.length) {
+                btn.html($.trim(btn.html()) + ' ');
+                balloon = $('<span class="balloon"></span>').appendTo(btn);
+            }
+
+            balloon.html(count);
+        } else if (0 == count && balloon.length > 0) {
+            balloon.remove();
+        }
+    }
+
+    $('.upload-area').bind({
+        dragenter   :   function () {
+            $(this).parent().addClass('drag');
+        },
+
+        dragover    :   function (e) {
+            $(this).parent().addClass('drag');
+        },
+
+        drop        :   function () {
+            $(this).parent().removeClass('drag');
+        },
         
-        if (!confirm("<?php _e('你确认删除附件 %s 吗?'); ?>".replace("%s", _title.get('text').trim()))) {
-            return;
+        dragend     :   function () {
+            $(this).parent().removeClass('drag');
+        },
+
+        dragleave   :   function () {
+            $(this).parent().removeClass('drag');
+        }
+    });
+
+    updateAttacmentNumber();
+
+    function fileUploadStart (file) {
+        $('<li id="' + file.id + '" class="loading">'
+            + file.name + '</li>').appendTo('#file-list');
+    }
+
+    function fileUploadError (error) {
+        var file = error.file, code = error.code, word; 
+        
+        switch (code) {
+            case plupload.FILE_SIZE_ERROR:
+                word = '<?php _e('文件大小超过限制'); ?>';
+                break;
+            case plupload.FILE_EXTENSION_ERROR:
+                word = '<?php _e('文件扩展名不被支持'); ?>';
+                break;
+            case plupload.FILE_DUPLICATE_ERROR:
+                word = '<?php _e('文件已经上传过'); ?>';
+                break;
+            case plupload.HTTP_ERROR:
+            default:
+                word = '<?php _e('上传出现错误'); ?>';
+                break;
         }
 
-        _title.addClass('delete');
-        
-        new Request.JSON({
-            method : 'post',
-            url : '<?php $options->index('/action/contents-attachment-edit'); ?>',
-            onComplete : function (result) {
-                if (200 == result.code) {
-                    $(el).getParent('li').destroy();
-                } else {
-                    _title.removeClass('delete');
-                    alert('<?php _e('删除失败'); ?>');
+        var fileError = '<?php _e('%s 上传失败'); ?>'.replace('%s', file.name),
+            li, exist = $('#' + file.id);
+
+        if (exist.length > 0) {
+            li = exist.removeClass('loading').html(fileError);
+        } else {
+            li = $('<li>' + fileError + '<br />' + word + '</li>').appendTo('#file-list');
+        }
+
+        li.effect('highlight', {color : '#FBC2C4'}, 2000, function () {
+            $(this).remove();
+        });
+
+        // fix issue #341
+        this.removeFile(file);
+    }
+
+    var completeFile = null;
+    function fileUploadComplete (id, url, data) {
+        var li = $('#' + id).removeClass('loading').data('cid', data.cid)
+            .data('url', data.url)
+            .data('image', data.isImage)
+            .html('<input type="hidden" name="attachment[]" value="' + data.cid + '" />'
+                + '<a class="insert" target="_blank" href="###" title="<?php _e('点击插入文件'); ?>">' + data.title + '</a><div class="info">' + data.bytes
+                + ' <a class="file" target="_blank" href="<?php $options->adminUrl('media.php'); ?>?cid=' 
+                + data.cid + '" title="<?php _e('编辑'); ?>"><i class="i-edit"></i></a>'
+                + ' <a class="delete" href="###" title="<?php _e('删除'); ?>"><i class="i-delete"></i></a></div>')
+            .effect('highlight', 1000);
+            
+        attachInsertEvent(li);
+        attachDeleteEvent(li);
+        updateAttacmentNumber();
+
+        if (!completeFile) {
+            completeFile = data;
+        }
+    }
+
+    $('#tab-files').bind('init', function () {
+        var uploader = new plupload.Uploader({
+            browse_button   :   $('.upload-file').get(0),
+            url             :   '<?php $security->index('/action/upload'
+                . (isset($fileParentContent) ? '?cid=' . $fileParentContent->cid : '')); ?>',
+            runtimes        :   'html5,flash,html4',
+            flash_swf_url   :   '<?php $options->adminStaticUrl('js', 'Moxie.swf'); ?>',
+            drop_element    :   $('.upload-area').get(0),
+            filters         :   {
+                max_file_size       :   '<?php echo $phpMaxFilesize ?>',
+                mime_types          :   [{'title' : '<?php _e('允许上传的文件'); ?>', 'extensions' : '<?php echo implode(',', $options->allowedAttachmentTypes); ?>'}],
+                prevent_duplicates  :   true
+            },
+
+            init            :   {
+                FilesAdded      :   function (up, files) {
+                    for (var i = 0; i < files.length; i ++) {
+                        fileUploadStart(files[i]);
+                    }
+
+                    completeFile = null;
+                    uploader.start();
+                },
+
+                UploadComplete  :   function () {
+                    if (completeFile) {
+                        Typecho.uploadComplete(completeFile);
+                    }
+                },
+
+                FileUploaded    :   function (up, file, result) {
+                    if (200 == result.status) {
+                        var data = $.parseJSON(result.response);
+
+                        if (data) {
+                            fileUploadComplete(file.id, data[0], data[1]);
+                            uploader.removeFile(file);
+                            return;
+                        }
+                    }
+
+                    fileUploadError.call(uploader, {
+                        code : plupload.HTTP_ERROR,
+                        file : file
+                    });
+                },
+
+                Error           :   function (up, error) {
+                    fileUploadError.call(uploader, error);
                 }
             }
-        }).send('do=delete&cid=' + cid);
-    };
-
-    (function () {
-
-        window.addEvent('domready', function() {
-            var _inited = false;
-            
-            //加强未加载暗示
-            var uploadButton = $(document).getElement('#upload-panel .button')
-            .setStyle('cursor', 'pointer')
-            .addEvent('click', function () {
-                alert('<?php _e('正在加载上传组件, 请稍候再试'); ?>');
-            });
-            
-            //begin parent tabshow
-            $(document).getElement('#upload-panel').addEvent('tabShow', function () {
-            
-                if (_inited) {
-                    return;
-                }
-                _inited = true;
-                
-                var swfuploadLoaded = function () {
-                    uploadButton.removeEvent('click');
-                };
-            
-                var fileDialogComplete = function (numFilesSelected, numFilesQueued) {
-                    try {
-                        this.startUpload();
-                    } catch (ex)  {
-                        this.debug(ex);
-                    }
-                };
-            
-                var uploadStart = function (file) {
-                    var _el = new Element('li', {
-                        'class' : 'upload-progress-item clearfix',
-                        'id'    : file.id,
-                        'text'  : file.name
-                    });
-                    
-                    _el.inject($(document).getElement('ul.upload-progress'), 'top');
-                };
-                
-                var uploadSuccess = function (file, serverData) {
-                    var _el = $(document).getElement('#' + file.id);
-                    var _result = JSON.decode(serverData);
-                    
-                    _el.set('html', '<strong>' + file.name + 
-                    '<input type="hidden" name="attachment[]" value="' + _result.cid + '" /></strong>' + 
-                    '<small><span class="insert"><?php _e('插入'); ?></span>' +
-                    ' , <span class="delete"><?php _e('删除'); ?></span></small>');
-                    _el.set('tween', {duration: 1500});
-                    
-                    _el.setStyles({
-                        'background-image' : 'none',
-                        'background-color' : '#D3DBB3'
-                    });
-                    
-                    _el.tween('background-color', '#D3DBB3', '#FFFFFF');
-                    
-                    var _insertBtn = _el.getElement('.insert');
-                    if (_result.isImage) {
-                        _insertBtn.addEvent('click', function () {
-                            insertImageToEditor(_result.title, _result.url, _result.permalink);
-                        });
-                    } else {
-                        _insertBtn.addEvent('click', function () {
-                            insertLinkToEditor(_result.title, _result.url, _result.permalink);
-                        });
-                    }
-                    
-                    var _deleteBtn = _el.getElement('.delete');
-                    _deleteBtn.addEvent('click', function () {
-                        deleteAttachment(_result.cid, this);
-                    });
-                };
-                
-                var uploadComplete = function (file) {
-                    //console.dir(file);
-                };
-                
-                var uploadError = function (file, errorCode, message) {
-                    var _el = $(document).getElement('#' + file.id);
-                    var _fx = new Fx.Tween(_el, {duration: 3000});
-                    
-                    _el.set('html', '<strong>' + file.name + ' <?php _e('上传失败'); ?></strong>');
-                    _el.setStyles({
-                        'background-image' : 'none',
-                        'color'            : '#FFFFFF',
-                        'background-color' : '#CC0000'
-                    });
-                    
-                    _fx.addEvent('complete', function () {
-                        _el.destroy();
-                    });
-                    
-                    _fx.start('background-color', '#CC0000', '#F7FBE9');
-                };
-                
-                var uploadProgress = function (file, bytesLoaded, bytesTotal) {
-                    var _el = $(document).getElement('#' + file.id);
-                    var percent = Math.ceil((1 - (bytesLoaded / bytesTotal)) * _el.getSize().x);
-                    _el.setStyle('background-position', '-' + percent + 'px 0');
-                };
-            
-                var swfu, _size = $(document).getElement('.typecho-list-operate a.button').getCoordinates(),
-                settings = {
-                    flash_url : "<?php $options->adminUrl('javascript/swfupload/swfupload.swf'); ?>",
-                    upload_url: "<?php $options->index('/action/upload'); ?>",
-                    post_params: {"__typecho_uid" : "<?php echo Typecho_Cookie::get('__typecho_uid'); ?>", 
-                    "__typecho_authCode" : "<?php echo addslashes(Typecho_Cookie::get('__typecho_authCode')); ?>" <?php if ($post->have()): ?>,
-                    "cid" : <?php $post->cid(); endif; ?>},
-                    file_size_limit : "<?php $val = trim(ini_get('upload_max_filesize'));
-        $last = strtolower($val[strlen($val)-1]);
-        switch($last) {
-            // The 'G' modifier is available since PHP 5.1.0
-            case 'g':
-                $val *= 1024;
-            case 'm':
-                $val *= 1024;
-            case 'k':
-                $val *= 1024;
-        }
-
-        echo $val;
-                    ?> byte",
-                    file_types : "<?php echo $options->attachmentTypes(); ?>",
-                    file_types_description : "<?php _e('所有文件'); ?>",
-                    file_upload_limit : 0,
-                    file_queue_limit : 0,
-                    debug: false,
-                    
-                    //Handle Settings
-                    file_dialog_complete_handler : fileDialogComplete,
-                    upload_start_handler : uploadStart,
-                    upload_progress_handler : uploadProgress,
-                    upload_success_handler : uploadSuccess,
-                    queue_complete_handler : uploadComplete,
-                    upload_error_handler : uploadError,
-                    swfupload_loaded_handler : swfuploadLoaded,
-                    
-                    // Button Settings
-                    button_placeholder_id : "swfu-placeholder",
-                    button_height: 25,
-                    button_text: '',
-                    button_text_style: '',
-                    button_text_left_padding: 14,
-                    button_text_top_padding: 0,
-                    button_width: _size.width,
-                    button_window_mode: SWFUpload.WINDOW_MODE.TRANSPARENT,
-                    button_cursor: SWFUpload.CURSOR.HAND
-                };
-
-                swfu = new SWFUpload(settings);
-                
-            });
-            //end parent tabshow
         });
-    })();
+
+        uploader.init();
+    });
+
+    function attachInsertEvent (el) {
+        $('.insert', el).click(function () {
+            var t = $(this), p = t.parents('li');
+            Typecho.insertFileToEditor(t.text(), p.data('url'), p.data('image'));
+            return false;
+        });
+    }
+
+    function attachDeleteEvent (el) {
+        var file = $('a.insert', el).text();
+        $('.delete', el).click(function () {
+            if (confirm('<?php _e('确认要删除文件 %s 吗?'); ?>'.replace('%s', file))) {
+                var cid = $(this).parents('li').data('cid');
+                $.post('<?php $security->index('/action/contents-attachment-edit'); ?>',
+                    {'do' : 'delete', 'cid' : cid},
+                    function () {
+                        $(el).fadeOut(function () {
+                            $(this).remove();
+                            updateAttacmentNumber();
+                        });
+                    });
+            }
+
+            return false;
+        });
+    }
+
+    $('#file-list li').each(function () {
+        attachInsertEvent(this);
+        attachDeleteEvent(this);
+    });
+});
 </script>
+

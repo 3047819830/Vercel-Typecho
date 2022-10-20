@@ -16,9 +16,6 @@
  * @version    $Id: Validation.php 106 2008-04-11 02:23:54Z magike.net $
  */
 
-/** Typecho_Common */
-require_once 'Typecho/Common.php';
-
 /**
  * 验证类
  *
@@ -33,10 +30,10 @@ class Typecho_Validate
      * @var array
      */
     private $_data;
-    
+
     /**
      * 当前验证指针
-     * 
+     *
      * @access private
      * @var string
      */
@@ -49,10 +46,10 @@ class Typecho_Validate
      * @var array
      */
     private $_rules = array();
-    
+
     /**
      * 中断模式,一旦出现验证错误即抛出而不再继续执行
-     * 
+     *
      * @access private
      * @var boolean
      */
@@ -60,7 +57,7 @@ class Typecho_Validate
 
     /**
      * 增加验证规则
-     * 
+     *
      * @access public
      * @param string $key 数值键值
      * @param string $rule 规则名称
@@ -76,13 +73,13 @@ class Typecho_Validate
             $params = array_splice($params, 3);
             $this->_rules[$key][] = array_merge(array($rule, $message), $params);
         }
-        
+
         return $this;
     }
-    
+
     /**
      * 设置为中断模式
-     * 
+     *
      * @access public
      * @return void
      */
@@ -110,15 +107,16 @@ class Typecho_Validate
         // Cycle through the rules and test for errors
         foreach ($rules as $key => $rules) {
             $this->_key = $key;
-            $data[$key] = (0 == strlen($data[$key])) ? NULL : $data[$key];
+            $data[$key] = (is_array($data[$key]) ? 0 == count($data[$key])
+                : 0 == strlen($data[$key])) ? NULL : $data[$key];
 
             foreach ($rules as $params) {
                 $method = $params[0];
-                
+
                 if ('required' != $method && 'confirm' != $method && 0 == strlen($data[$key])) {
                     continue;
                 }
-                
+
                 $message = $params[1];
                 $params[1] = $data[$key];
                 $params = array_slice($params, 1);
@@ -128,7 +126,7 @@ class Typecho_Validate
                     break;
                 }
             }
-            
+
             /** 开启中断 */
             if ($this->_break && $result) {
                 break;
@@ -140,13 +138,13 @@ class Typecho_Validate
 
     /**
      * 最小长度
-     * 
+     *
      * @access public
      * @param string $str 待处理的字符串
      * @param integer $length 最小长度
      * @return boolean
      */
-    public function minLength($str, $length)
+    public static function minLength($str, $length)
     {
         return (Typecho_Common::strLen($str) >= $length);
     }
@@ -175,28 +173,29 @@ class Typecho_Validate
     {
         return !empty($this->_data[$this->_key]);
     }
-    
+
     /**
      * 枚举类型判断
-     * 
+     *
      * @access public
      * @param string $str 待处理的字符串
      * @param array $params 枚举值
      * @return unknown
      */
-    public function enum($str, array $params)
+    public static function enum($str, array $params)
     {
-        return in_array($str, $params);
+        $keys = array_flip($params);
+        return isset($keys[$str]);
     }
 
     /**
      * Max Length
      *
-     * @access public
-     * @param string
-     * @return boolean
+     * @param $str
+     * @param $length
+     * @return bool
      */
-    public function maxLength($str, $length)
+    public static function maxLength($str, $length)
     {
         return (Typecho_Common::strLen($str) < $length);
     }
@@ -208,9 +207,9 @@ class Typecho_Validate
      * @param string
      * @return boolean
      */
-    public function email($str)
+    public static function email($str)
     {
-        return preg_match("/^[^@\s<&>]+@([-a-z0-9]+\.)+[a-z]{2,}$/i", $str);
+        return preg_match("/^[_a-z0-9-\.]+@([-a-z0-9]+\.)+[a-z]{2,}$/i", $str);
     }
 
     /**
@@ -220,14 +219,14 @@ class Typecho_Validate
      * @param string $str
      * @return boolean
      */
-    public function url($str)
+    public static function url($str)
     {
         $parts = @parse_url($str);
         if (!$parts) {
             return false;
         }
-        
-        return isset($parts['scheme']) && 
+
+        return isset($parts['scheme']) &&
         in_array($parts['scheme'], array('http', 'https', 'ftp')) &&
         !preg_match('/(\(|\)|\\\|"|<|>|[\x00-\x08]|[\x0b-\x0c]|[\x0e-\x19])/', $str);
     }
@@ -239,7 +238,7 @@ class Typecho_Validate
      * @param string
      * @return boolean
      */
-    public function alpha($str)
+    public static function alpha($str)
     {
         return preg_match("/^([a-z])+$/i", $str) ? true : false;
     }
@@ -251,7 +250,7 @@ class Typecho_Validate
      * @param string
      * @return boolean
      */
-    public function alphaNumeric($str)
+    public static function alphaNumeric($str)
     {
         return preg_match("/^([a-z0-9])+$/i", $str);
     }
@@ -263,19 +262,19 @@ class Typecho_Validate
      * @param string
      * @return boolean
      */
-    public function alphaDash($str)
+    public static function alphaDash($str)
     {
         return preg_match("/^([_a-z0-9-])+$/i", $str) ? true : false;
     }
-    
+
     /**
      * 对xss字符串的检测
-     * 
+     *
      * @access public
      * @param string $str
      * @return boolean
      */
-    public function xssCheck($str)
+    public static function xssCheck($str)
     {
         $search = 'abcdefghijklmnopqrstuvwxyz';
         $search .= 'ABCDEFGHIJKLMNOPQRSTUVWXYZ';
@@ -283,16 +282,16 @@ class Typecho_Validate
         $search .= '~`";:?+/={}[]-_|\'\\';
 
         for ($i = 0; $i < strlen($search); $i++) {
-            // ;? matches the ;, which is optional 
-            // 0{0,7} matches any padded zeros, which are optional and go up to 8 chars 
+            // ;? matches the ;, which is optional
+            // 0{0,7} matches any padded zeros, which are optional and go up to 8 chars
 
-            // &#x0040 @ search for the hex values 
-            $str = preg_replace('/(&#[xX]0{0,8}'.dechex(ord($search[$i])).';?)/i', $search[$i], $str); // with a ; 
-            // &#00064 @ 0{0,7} matches '0' zero to seven times 
-            $str = preg_replace('/(&#0{0,8}'.ord($search[$i]).';?)/', $search[$i], $str); // with a ; 
+            // &#x0040 @ search for the hex values
+            $str = preg_replace('/(&#[xX]0{0,8}'.dechex(ord($search[$i])).';?)/i', $search[$i], $str); // with a ;
+            // &#00064 @ 0{0,7} matches '0' zero to seven times
+            $str = preg_replace('/(&#0{0,8}'.ord($search[$i]).';?)/', $search[$i], $str); // with a ;
         }
-        
-        return !preg_match('/(\(|\)|\\\|"|<|>|[\x00-\x08]|[\x0b-\x0c]|[\x0e-\x19])/', $str);
+
+        return !preg_match('/(\(|\)|\\\|"|<|>|[\x00-\x08]|[\x0b-\x0c]|[\x0e-\x19]|' . "\r|\n|\t" . ')/', $str);
     }
 
     /**
@@ -302,9 +301,9 @@ class Typecho_Validate
      * @param integer
      * @return boolean
      */
-    public function isFloat($str)
+    public static function isFloat($str)
     {
-        return ereg("^[0-9\.]+$", $str);
+        return preg_match("/^[0-9\.]+$/", $str);
     }
 
     /**
@@ -314,7 +313,7 @@ class Typecho_Validate
      * @param string
      * @return boolean
      */
-    public function isInteger($str)
+    public static function isInteger($str)
     {
         return is_numeric($str);
     }
