@@ -129,7 +129,7 @@ class Typecho_Common
         
         if (isset(self::$config['autoLoad']) && self::$config['autoLoad']) {
             /** 设置自动载入函数 */
-            function __autoLoad($className)
+            function autoload($className)
             {
                 /**
                  * 自动载入函数并不判断此类的文件是否存在, 我们认为当你显式的调用它时, 你已经确认它存在了
