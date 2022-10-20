@@ -6,9 +6,9 @@
  * @license    GNU General Public License 2.0
  * @version    $Id$
  */
-
-/** 开启https */
-define('__TYPECHO_SECURE__',true);
+ 
+ 
+ define('__TYPECHO_SECURE__',true);
 
 /** 定义根目录 */
 define('__TYPECHO_ROOT_DIR__', dirname(__FILE__));
@@ -39,9 +39,12 @@ $db->addServer(array (
   'host' => 'sql.freedb.tech',
   'user' => 'freedb_3047819830',
   'password' => 'QeD%6$x24%@662z',
-  'charset' => 'utf8mb4',
+  'charset' => 'utf8',
   'port' => '3306',
   'database' => 'freedb_mzb-blog',
   'engine' => 'MyISAM',
 ), Typecho_Db::READ | Typecho_Db::WRITE);
 Typecho_Db::set($db);
+
+/** 开启HTTPS */
+define('__TYPECHO_SECURE__',true);
