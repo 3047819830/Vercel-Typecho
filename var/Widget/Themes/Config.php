@@ -1,11 +1,16 @@
 <?php
-/**
- * Typecho Blog Platform
- *
- * @copyright  Copyright (c) 2008 Typecho team (http://www.typecho.org)
- * @license    GNU General Public License 2.0
- * @version    $Id$
- */
+
+namespace Widget\Themes;
+
+use Typecho\Widget\Exception;
+use Typecho\Widget\Helper\Form;
+use Typecho\Widget\Helper\Form\Element\Submit;
+use Widget\Base\Options as BaseOptions;
+use Widget\Options;
+
+if (!defined('__TYPECHO_ROOT_DIR__')) {
+    exit;
+}
 
 /**
  * 皮肤配置组件
@@ -16,75 +21,63 @@
  * @copyright Copyright (c) 2008 Typecho team (http://www.typecho.org)
  * @license GNU General Public License 2.0
  */
-class Widget_Themes_Config extends Widget_Abstract_Options
+class Config extends BaseOptions
 {
     /**
      * 绑定动作
      *
-     * @access public
-     * @return void
+     * @throws Exception|\Typecho\Db\Exception
      */
     public function execute()
     {
         $this->user->pass('administrator');
-        
+
         if (!self::isExists()) {
-            throw new Typecho_Widget_Exception(_t('外观配置功能不存在'), 404);
+            throw new Exception(_t('外观配置功能不存在'), 404);
         }
     }
-    
-    /**
-     * 获取菜单标题
-     *
-     * @access public
-     * @return string
-     */
-    public function getMenuTitle()
-    {
-        return _t('设置外观 %s', $this->options->theme);
-    }
-    
+
     /**
      * 配置功能是否存在
-     * 
-     * @access public
+     *
      * @return boolean
      */
-    public static function isExists()
+    public static function isExists(): bool
     {
-        $configFile = __TYPECHO_ROOT_DIR__ . __TYPECHO_THEME_DIR__ . '/' . Typecho_Widget::widget('Widget_Options')->theme . '/functions.php';
-        
+        $options = Options::alloc();
+        $configFile = $options->themeFile($options->theme, 'functions.php');
+
         if (file_exists($configFile)) {
             require_once $configFile;
-            
+
             if (function_exists('themeConfig')) {
                 return true;
             }
         }
-        
+
         return false;
     }
 
     /**
      * 配置外观
      *
-     * @access public
-     * @return void
+     * @return Form
      */
-    public function config()
+    public function config(): Form
     {
-        $form = new Typecho_Widget_Helper_Form(Typecho_Common::url('/action/themes-edit?config',
-        $this->options->index), Typecho_Widget_Helper_Form::POST_METHOD);
+        $form = new Form($this->security->getIndex('/action/themes-edit?config'), Form::POST_METHOD);
         themeConfig($form);
         $inputs = $form->getInputs();
-        
+
         if (!empty($inputs)) {
             foreach ($inputs as $key => $val) {
                 $form->getInput($key)->value($this->options->{$key});
             }
         }
 
-        $form->addItem(new Typecho_Widget_Helper_Form_Element_Submit(NULL, NULL, _t('保存设置')));
+        $submit = new Submit(null, null, _t('保存设置'));
+        $submit->input->setAttribute('class', 'btn primary');
+        $form->addItem($submit);
         return $form;
     }
 }

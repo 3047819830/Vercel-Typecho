@@ -1,16 +1,13 @@
 <?php
-/**
- * 隐藏域帮手类
- *
- * @category typecho
- * @package Widget
- * @copyright Copyright (c) 2008 Typecho team (http://www.typecho.org)
- * @license GNU General Public License 2.0
- * @version $Id$
- */
 
-/** Typecho_Widget_Helper_Form_Element */
-require_once 'Typecho/Widget/Helper/Form/Element.php';
+namespace Typecho\Widget\Helper\Form\Element;
+
+use Typecho\Widget\Helper\Form\Element;
+use Typecho\Widget\Helper\Layout;
+
+if (!defined('__TYPECHO_ROOT_DIR__')) {
+    exit;
+}
 
 /**
  * 隐藏域帮手类
@@ -20,12 +17,11 @@ require_once 'Typecho/Widget/Helper/Form/Element.php';
  * @copyright Copyright (c) 2008 Typecho team (http://www.typecho.org)
  * @license GNU General Public License 2.0
  */
-class Typecho_Widget_Helper_Form_Element_Hidden extends Typecho_Widget_Helper_Form_Element
+class Hidden extends Element
 {
     /**
      * 自定义初始函数
      *
-     * @access public
      * @return void
      */
     public function init()
@@ -38,26 +34,25 @@ class Typecho_Widget_Helper_Form_Element_Hidden extends Typecho_Widget_Helper_Fo
      * 初始化当前输入项
      *
      * @access public
-     * @param string $name 表单元素名称
-     * @param array $options 选择项
-     * @return Typecho_Widget_Helper_Layout
+     * @param string|null $name 表单元素名称
+     * @param array|null $options 选择项
+     * @return Layout|null
      */
-    public function input($name = NULL, array $options = NULL)
+    public function input(?string $name = null, ?array $options = null): ?Layout
     {
-        $input = new Typecho_Widget_Helper_Layout('input', array('name' => $name, 'type' => 'hidden'));
+        $input = new Layout('input', ['name' => $name, 'type' => 'hidden']);
         $this->container($input);
+        $this->inputs[] = $input;
         return $input;
     }
 
     /**
      * 设置表单项默认值
      *
-     * @access protected
-     * @param string $value 表单项默认值
-     * @return void
+     * @param mixed $value 表单项默认值
      */
-    protected function _value($value)
+    protected function inputValue($value)
     {
-        $this->input->setAttribute('value', $value);
+        $this->input->setAttribute('value', htmlspecialchars($value));
     }
 }

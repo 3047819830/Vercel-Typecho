@@ -1,111 +1,127 @@
-<?php if(!defined('__TYPECHO_ROOT_DIR__')) exit; ?>
-<script type="text/javascript" src="<?php $options->adminUrl('javascript/mootools.js?v=' . $suffixVersion); ?>"></script> 
-<script type="text/javascript" src="<?php $options->adminUrl('javascript/typecho.js?v=' . $suffixVersion); ?>"></script>
-<script type="text/javascript">
+<?php if(!defined('__TYPECHO_ADMIN__')) exit; ?>
+<script src="<?php $options->adminStaticUrl('js', 'jquery.js'); ?>"></script>
+<script src="<?php $options->adminStaticUrl('js', 'jquery-ui.js'); ?>"></script>
+<script src="<?php $options->adminStaticUrl('js', 'typecho.js'); ?>"></script>
+<script>
     (function () {
-        window.addEvent('domready', function() {
-            var _d = $(document);
-            var handle = new Typecho.guid('typecho:guid', {offset: 1, type: 'mouse'});
-            
-            //增加高亮效果
+        $(document).ready(function() {
+            // 处理消息机制
             (function () {
-                var _hlId = '<?php echo $notice->highlight; ?>';
-                
-                if (_hlId) {
-                    var _hl = _d.getElement('#' + _hlId);
-                    
-                    if (_hl) {
-                        _hl.set('tween', {duration: 1500});
-            
-                        var _bg = _hl.getStyle('background-color');
-                        if (!_bg || 'transparent' == _bg) {
-                            _bg = '#F7FBE9';
+                var prefix = '<?php echo \Typecho\Cookie::getPrefix(); ?>',
+                    cookies = {
+                        notice      :   $.cookie(prefix + '__typecho_notice'),
+                        noticeType  :   $.cookie(prefix + '__typecho_notice_type'),
+                        highlight   :   $.cookie(prefix + '__typecho_notice_highlight')
+                    },
+                    path = '<?php echo \Typecho\Cookie::getPath(); ?>';
+
+                if (!!cookies.notice && 'success|notice|error'.indexOf(cookies.noticeType) >= 0) {
+                    var head = $('.typecho-head-nav'),
+                        p = $('<div class="message popup ' + cookies.noticeType + '">'
+                        + '<ul><li>' + $.parseJSON(cookies.notice).join('</li><li>') 
+                        + '</li></ul></div>'), offset = 0;
+
+                    if (head.length > 0) {
+                        p.insertAfter(head);
+                        offset = head.outerHeight();
+                    } else {
+                        p.prependTo(document.body);
+                    }
+
+                    function checkScroll () {
+                        if ($(window).scrollTop() >= offset) {
+                            p.css({
+                                'position'  :   'fixed',
+                                'top'       :   0
+                            });
+                        } else {
+                            p.css({
+                                'position'  :   'absolute',
+                                'top'       :   offset
+                            });
+                        }
+                    }
+
+                    $(window).scroll(function () {
+                        checkScroll();
+                    });
+
+                    checkScroll();
+
+                    p.slideDown(function () {
+                        var t = $(this), color = '#C6D880';
+                        
+                        if (t.hasClass('error')) {
+                            color = '#FBC2C4';
+                        } else if (t.hasClass('notice')) {
+                            color = '#FFD324';
                         }
 
-                        _hl.tween('background-color', '#AACB36', _bg);
+                        t.effect('highlight', {color : color})
+                            .delay(5000).fadeOut(function () {
+                            $(this).remove();
+                        });
+                    });
+
+                    
+                    $.cookie(prefix + '__typecho_notice', null, {path : path});
+                    $.cookie(prefix + '__typecho_notice_type', null, {path : path});
+                }
+
+                if (cookies.highlight) {
+                    $('#' + cookies.highlight).effect('highlight', 1000);
+                    $.cookie(prefix + '__typecho_notice_highlight', null, {path : path});
+                }
+            })();
+
+
+            // 导航菜单 tab 聚焦时展开下拉菜单
+            const menuBar = $('.menu-bar').click(function () {
+                const nav = $(this).next('#typecho-nav-list');
+                if (!$(this).toggleClass('focus').hasClass('focus')) {
+                    nav.removeClass('expanded noexpanded');
+                }
+            });
+
+            $('.main, .typecho-foot').on('click touchstart', function () {
+                if (menuBar.hasClass('focus')) {
+                    menuBar.trigger('click');
+                }
+            });
+
+            $('#typecho-nav-list ul.root').each(function () {
+                const ul = $(this), nav = ul.parent();
+
+                ul.on('click touchend', '.parent a', function (e) {
+                    nav.removeClass('noexpanded').addClass('expanded');
+                    if ($(window).width() < 576 && e.type == 'click') {
+                        return false;
                     }
-                }
-            })();
-
-            //增加淡出效果
-            (function () {
-                var _msg = _d.getElement('.popup');
-            
-                if (_msg) {
-                    (function () {
-
-                        var _messageEffect = new Fx.Morph(this, {
-                            duration: 'short', 
-                            transition: Fx.Transitions.Sine.easeOut
-                        });
-
-                        _messageEffect.addEvent('complete', function () {
-                            this.element.setStyle('display', 'none');
-                        });
-
-                        _messageEffect.start({'margin-top': [30, 0], 'height': [21, 0], 'opacity': [1, 0]});
-
-                    }).delay(5000, _msg);
-                }
-            })();
-            
-            //增加滚动效果,滚动到上面的一条error
-            (function () {
-                var _firstError = _d.getElement('.typecho-option .error');
-    
-                if (_firstError) {
-                    var _errorFx = new Fx.Scroll(window).toElement(_firstError.getParent('.typecho-option'));
-                }
-            })();
-
-            //禁用重复提交
-            (function () {
-                _d.getElements('input[type=submit]').removeProperty('disabled');
-                _d.getElements('button[type=submit]').removeProperty('disabled');
-    
-                var _disable = function (e) {
-                    e.stopPropagation();
-                    
-                    this.setProperty('disabled', true);
-                    this.getParent('form').submit();
-                    
+                }).find('.child')
+                .append($('<li class="return"><a><?php _e('返回'); ?></a></li>').click(function () {
+                    nav.removeClass('expanded').addClass('noexpanded');
                     return false;
-                };
+                }));
+            });
 
-                _d.getElements('input[type=submit]').addEvent('click', _disable);
-                _d.getElements('button[type=submit]').addEvent('click', _disable);
-            })();
+            if ($('.typecho-login').length == 0) {
+                $('a').each(function () {
+                    var t = $(this), href = t.attr('href');
 
-            //打开链接
-            (function () {
-                
-                _d.getElements('a').each(function (item) {
-                    var _href = item.href;
-                    
-                    if (_href && 0 != _href.indexOf('#')) {
-                        //确认框
-                        item.addEvent('click', function (event) {
-                            var _lang = this.get('lang');
-                            var _c = _lang ? confirm(_lang) : true;
-                
-                            if (!_c) {
-                                event.stop();
-                            }
-                        });
-        
-                        /** 如果匹配则继续 */
-                        if (/^<?php echo preg_quote($options->adminUrl, '/'); ?>.*$/.exec(_href) 
-                            || /^<?php echo substr(preg_quote(Typecho_Common::url('s', $options->index), '/'), 0, -1); ?>action\/[_a-zA-Z0-9\/]+.*$/.exec(_href)) {
-                            return;
-                        }
-            
-                        item.set('target', '_blank');
+                    if ((href && href[0] == '#')
+                        || /^<?php echo preg_quote($options->adminUrl, '/'); ?>.*$/.exec(href) 
+                            || /^<?php echo substr(preg_quote(\Typecho\Common::url('s', $options->index), '/'), 0, -1); ?>action\/[_a-zA-Z0-9\/]+.*$/.exec(href)) {
+                        return;
                     }
+
+                    t.attr('target', '_blank')
+                        .attr('rel', 'noopener noreferrer');
                 });
-            })();
-            
-            Typecho.Table.init('.typecho-list-table');
-            Typecho.Table.init('.typecho-list-notable');
+            }
+
+            $('.main form').submit(function () {
+                $('button[type=submit]', this).attr('disabled', 'disabled');
+            });
         });
     })();
 </script>

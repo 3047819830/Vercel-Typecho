@@ -1,11 +1,10 @@
 <?php
-/**
- * Typecho Blog Platform
- *
- * @copyright  Copyright (c) 2008 Typecho team (http://www.typecho.org)
- * @license    GNU General Public License 2.0
- * @version    $Id$
- */
+
+namespace Widget;
+
+if (!defined('__TYPECHO_ROOT_DIR__')) {
+    exit;
+}
 
 /**
  * 异常处理组件
@@ -16,18 +15,13 @@
  * @copyright Copyright (c) 2008 Typecho team (http://www.typecho.org)
  * @license GNU General Public License 2.0
  */
-class Widget_ExceptionHandle extends Widget_Archive
+class ExceptionHandle extends Base
 {
     /**
      * 重载构造函数
-     *
-     * @access public
-     * @param Exception $excepiton 抛出的异常
-     * @return void
      */
-    public function __construct()
+    public function execute()
     {
-        $this->widget('Widget_Archive@404', 'type=404')->render();
-        exit;
+        Archive::allocWithAlias('404', 'type=404')->render();
     }
 }

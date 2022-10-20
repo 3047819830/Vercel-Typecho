@@ -1,22 +1,23 @@
 <?php
-if (!defined('__TYPECHO_ROOT_DIR__')) {
+if (!defined('__TYPECHO_ADMIN__')) {
     exit;
 }
 
-$header = '<link rel="stylesheet" type="text/css" href="' . Typecho_Common::url('css/reset.source.css?v=' . $suffixVersion, $options->adminUrl) . '" /> 
-<link rel="stylesheet" type="text/css" href="' . Typecho_Common::url('css/grid.source.css?v=' . $suffixVersion, $options->adminUrl) . '" /> 
-<link rel="stylesheet" type="text/css" href="' . Typecho_Common::url('css/typecho.source.css?v=' . $suffixVersion, $options->adminUrl) . '" />';
+$header = '<link rel="stylesheet" href="' . $options->adminStaticUrl('css', 'normalize.css', true) . '">
+<link rel="stylesheet" href="' . $options->adminStaticUrl('css', 'grid.css', true) . '">
+<link rel="stylesheet" href="' . $options->adminStaticUrl('css', 'style.css', true) . '">';
 
 /** 注册一个初始化插件 */
-Typecho_Plugin::factory('admin/header.php')->header($header);
+$header = \Typecho\Plugin::factory('admin/header.php')->header($header);
 
-?><!DOCTYPE html PUBLIC "-//W3C//DTD XHTML 1.0 Transitional//EN" 
-    "http://www.w3.org/TR/xhtml1/DTD/xhtml1-transitional.dtd">
-<html xmlns="http://www.w3.org/1999/xhtml">
+?><!DOCTYPE HTML>
+<html>
     <head>
-        <meta http-equiv="Content-Type" content="text/html; charset=<?php $options->charset(); ?>" />
+        <meta charset="<?php $options->charset(); ?>">
+        <meta name="renderer" content="webkit">
+        <meta name="viewport" content="width=device-width, initial-scale=1, maximum-scale=1, user-scalable=no">
         <title><?php _e('%s - %s - Powered by Typecho', $menu->title, $options->title); ?></title>
-        <meta name="robots" content="noindex,nofollow" />
+        <meta name="robots" content="noindex, nofollow">
         <?php echo $header; ?>
     </head>
     <body<?php if (isset($bodyClass)) {echo ' class="' . $bodyClass . '"';} ?>>

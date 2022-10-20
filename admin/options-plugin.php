@@ -5,11 +5,11 @@ include 'menu.php';
 ?>
 
 <div class="main">
-    <div class="body body-950">
+    <div class="body container">
         <?php include 'page-title.php'; ?>
-        <div class="container typecho-page-main">
-            <div class="column-22 start-02">
-                <?php Typecho_Widget::widget('Widget_Plugins_Config')->config()->render(); ?>
+        <div class="row typecho-page-main" role="form">
+            <div class="col-mb-12 col-tb-8 col-tb-offset-2">
+                <?php \Widget\Plugins\Config::alloc()->config()->render(); ?>
             </div>
         </div>
     </div>
@@ -18,5 +18,6 @@ include 'menu.php';
 <?php
 include 'copyright.php';
 include 'common-js.php';
+include 'form-js.php';
 include 'footer.php';
 ?>

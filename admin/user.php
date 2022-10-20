@@ -1,16 +1,15 @@
 <?php
 include 'common.php';
-
 include 'header.php';
 include 'menu.php';
 ?>
 
 <div class="main">
-    <div class="body body-950">
+    <div class="body container">
         <?php include 'page-title.php'; ?>
-        <div class="container typecho-page-main">
-            <div class="column-22 start-02">
-                <?php Typecho_Widget::widget('Widget_Users_Edit')->form()->render(); ?>
+        <div class="row typecho-page-main" role="form">
+            <div class="col-mb-12 col-tb-6 col-tb-offset-3">
+                <?php \Widget\Users\Edit::alloc()->form()->render(); ?>
             </div>
         </div>
     </div>
@@ -19,5 +18,6 @@ include 'menu.php';
 <?php
 include 'copyright.php';
 include 'common-js.php';
+include 'form-js.php';
 include 'footer.php';
 ?>

@@ -1,4 +1,13 @@
 <?php
+
+namespace Typecho\Plugin;
+
+if (!defined('__TYPECHO_ROOT_DIR__')) {
+    exit;
+}
+
+use Typecho\Exception as TypechoException;
+
 /**
  * Typecho Blog Platform
  *
@@ -7,13 +16,11 @@
  * @version    $Id: WidgetException.php 46 2008-03-10 13:59:36Z magike.net $
  */
 
-/** 异常基类 */
-require_once 'Typecho/Exception.php';
-
 /**
  * 插件异常
  *
  * @package Plugin
  */
-class Typecho_Plugin_Exception extends Typecho_Exception
-{}
+class Exception extends TypechoException
+{
+}

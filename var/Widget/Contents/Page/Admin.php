@@ -1,13 +1,14 @@
 <?php
-/**
- * 独立页面管理列表
- *
- * @category typecho
- * @package Widget
- * @copyright Copyright (c) 2008 Typecho team (http://www.typecho.org)
- * @license GNU General Public License 2.0
- * @version $Id$
- */
+
+namespace Widget\Contents\Page;
+
+use Typecho\Common;
+use Typecho\Db;
+use Widget\Contents\Post\Admin as PostAdmin;
+
+if (!defined('__TYPECHO_ROOT_DIR__')) {
+    exit;
+}
 
 /**
  * 独立页面管理列表组件
@@ -17,39 +18,41 @@
  * @copyright Copyright (c) 2008 Typecho team (http://www.typecho.org)
  * @license GNU General Public License 2.0
  */
-class Widget_Contents_Page_Admin extends Widget_Contents_Post_Admin
+class Admin extends PostAdmin
 {
     /**
      * 执行函数
      *
      * @access public
      * @return void
+     * @throws Db\Exception
      */
     public function execute()
     {
-        /** 构建基础查询 */
-        $select = $this->select()->where('table.contents.type = ?', 'page');
-
         /** 过滤状态 */
-        $select->where('table.contents.status = ? OR (table.contents.status = ? AND table.contents.parent = 0)',
-            'publish', 'draft');
+        $select = $this->select()->where(
+            'table.contents.type = ? OR (table.contents.type = ? AND table.contents.parent = ?)',
+            'page',
+            'page_draft',
+            0
+        );
 
         /** 过滤标题 */
-        if (NULL != ($keywords = $this->request->keywords)) {
-            $args = array();
+        if (null != ($keywords = $this->request->keywords)) {
+            $args = [];
             $keywordsList = explode(' ', $keywords);
             $args[] = implode(' OR ', array_fill(0, count($keywordsList), 'table.contents.title LIKE ?'));
 
             foreach ($keywordsList as $keyword) {
-                $args[] = '%' . Typecho_Common::filterSearchQuery($keyword) . '%';
+                $args[] = '%' . Common::filterSearchQuery($keyword) . '%';
             }
 
-            call_user_func_array(array($select, 'where'), $args);
+            call_user_func_array([$select, 'where'], $args);
         }
 
         /** 提交查询 */
-        $select->order('table.contents.order', Typecho_Db::SORT_ASC);
+        $select->order('table.contents.order', Db::SORT_ASC);
 
-        $this->db->fetchAll($select, array($this, 'push'));
+        $this->db->fetchAll($select, [$this, 'push']);
     }
 }

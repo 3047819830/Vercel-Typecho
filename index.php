@@ -8,19 +8,19 @@
  */
 
 /** 载入配置支持 */
-if (!@include_once 'config.inc.php') {
+if (!defined('__TYPECHO_ROOT_DIR__') && !@include_once 'config.inc.php') {
     file_exists('./install.php') ? header('Location: install.php') : print('Missing Config File');
     exit;
 }
 
 /** 初始化组件 */
-Typecho_Widget::widget('Widget_Init');
+\Widget\Init::alloc();
 
 /** 注册一个初始化插件 */
-Typecho_Plugin::factory('index.php')->begin();
+\Typecho\Plugin::factory('index.php')->begin();
 
 /** 开始路由分发 */
-Typecho_Router::dispatch();
+\Typecho\Router::dispatch();
 
 /** 注册一个结束插件 */
-Typecho_Plugin::factory('index.php')->end();
+\Typecho\Plugin::factory('index.php')->end();

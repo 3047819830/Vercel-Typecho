@@ -1,16 +1,6 @@
 <?php
-/**
- * cookie支持
- *
- * @category typecho
- * @package Cookie
- * @copyright Copyright (c) 2008 Typecho team (http://www.typecho.org)
- * @license GNU General Public License 2.0
- * @version $Id$
- */
 
-/** 载入api支持 */
-require_once 'Typecho/Common.php';
+namespace Typecho;
 
 /**
  * cookie支持
@@ -19,79 +9,105 @@ require_once 'Typecho/Common.php';
  * @category typecho
  * @package Cookie
  */
-class Typecho_Cookie
+class Cookie
 {
+    /**
+     * 前缀
+     *
+     * @var string
+     * @access private
+     */
+    private static $prefix = '';
+
+    /**
+     * 路径
+     *
+     * @var string
+     * @access private
+     */
+    private static $path = '/';
+
+    /**
+     * 获取前缀
+     *
+     * @access public
+     * @return string
+     */
+    public static function getPrefix(): string
+    {
+        return self::$prefix;
+    }
+
+    /**
+     * 设置前缀
+     *
+     * @param string $url
+     *
+     * @access public
+     * @return void
+     */
+    public static function setPrefix(string $url)
+    {
+        self::$prefix = md5($url);
+        $parsed = parse_url($url);
+
+        /** 在路径后面强制加上斜杠 */
+        self::$path = empty($parsed['path']) ? '/' : Common::url(null, $parsed['path']);
+    }
+
+    /**
+     * 获取目录
+     *
+     * @access public
+     * @return string
+     */
+    public static function getPath(): string
+    {
+        return self::$path;
+    }
+
     /**
      * 获取指定的COOKIE值
      *
-     * @access public
      * @param string $key 指定的参数
-     * @param string $default 默认的参数
+     * @param string|null $default 默认的参数
      * @return mixed
      */
-    public static function get($key, $default = NULL)
+    public static function get(string $key, ?string $default = null)
     {
-        return isset($_COOKIE[$key]) ? $_COOKIE[$key] : $default;
+        $key = self::$prefix . $key;
+        $value = $_COOKIE[$key] ?? $default;
+        return is_array($value) ? $default : $value;
     }
 
     /**
      * 设置指定的COOKIE值
      *
-     * @access public
      * @param string $key 指定的参数
      * @param mixed $value 设置的值
      * @param integer $expire 过期时间,默认为0,表示随会话时间结束
-     * @param string $url 路径(可以是域名,也可以是地址)
-     * @return void
      */
-    public static function set($key, $value, $expire = 0, $url = NULL)
+    public static function set(string $key, $value, int $expire = 0)
     {
-        $path = '/';
-        if (!empty($url)) {
-            $parsed = parse_url($url);
-
-            /** 在路径后面强制加上斜杠 */
-            $path = empty($parsed['path']) ? '/' : Typecho_Common::url(NULL, $parsed['path']);
-        }
-
-        /** 对数组型COOKIE的写入支持 */
-        if (is_array($value)) {
-            foreach ($value as $name => $val) {
-                setcookie("{$key}[{$name}]", $val, $expire, $path);
-            }
-        } else {
-            setcookie($key, $value, $expire, $path);
-        }
+        $key = self::$prefix . $key;
+        $_COOKIE[$key] = $value;
+        Response::getInstance()->setCookie($key, $value, $expire, self::$path);
     }
 
     /**
      * 删除指定的COOKIE值
      *
-     * @access public
      * @param string $key 指定的参数
-     * @return void
      */
-    public static function delete($key, $url = NULL)
+    public static function delete(string $key)
     {
+        $key = self::$prefix . $key;
         if (!isset($_COOKIE[$key])) {
             return;
         }
 
-        $path = '/';
-        if (!empty($url)) {
-            $parsed = parse_url($url);
-
-            /** 在路径后面强制加上斜杠 */
-            $path = empty($parsed['path']) ? '/' : Typecho_Common::url(NULL, $parsed['path']);
-        }
-
-        /** 对数组型COOKIE的删除支持 */
-        if (is_array($_COOKIE[$key])) {
-            foreach ($_COOKIE[$key] as $name => $val) {
-                setcookie("{$key}[{$name}]", '', time() - 2592000, $path);
-            }
-        } else {
-            setcookie($key, '', time() - 2592000, $path);
-        }
+        Response::getInstance()->setCookie($key, '', -1, self::$path);
+        unset($_COOKIE[$key]);
     }
 }
+
